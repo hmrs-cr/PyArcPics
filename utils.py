@@ -1,0 +1,180 @@
+import hashlib
+import os
+import time
+import pyexiv2
+import re
+import datetime
+
+
+primary_backup_marker = "destination_folder"
+secondary_backup_marker = "secondary_backup"
+
+
+def format_time(_time):
+    days = int(_time // 86400)
+    hours = int(_time // 3600 % 24)
+    minutes = int(_time // 60 % 60)
+    seconds = int(_time % 60)
+
+    result = ""
+
+    if days > 0:
+        result += str(days) + " days, "
+
+    if hours > 0:
+        result += str(hours) + " hours, "
+
+    if minutes > 0:
+        result += str(minutes) + " minutes, "
+
+    if seconds > 0:
+        result += str(seconds) + " seconds"
+
+    if result:
+        return result
+
+    return "0 seconds"
+
+
+def format_eta(bits_per_second, elapsed_bits, total_bits):    
+    remaining_bits = total_bits - elapsed_bits
+    remaining_time = remaining_bits / bits_per_second
+    return format_time(remaining_time)
+
+
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
+
+def get_file_size(file_name):
+    try:
+        return os.path.getsize(file_name)
+    except:
+        return 0
+
+
+def is_picture(file_name):
+    fname, fext = os.path.splitext(file_name)
+    return fext.lower() in [".jpg", ".jpeg", ".png"]
+
+
+def get_md5sum_from_file(file_name):
+    m = hashlib.md5()
+    with open(file_name, "rb") as f:
+        while True:
+            buf = f.read(128)
+            if not buf:
+                break
+            m.update(buf)
+
+    return m.hexdigest()
+
+
+def get_exif_value(exif_data, key):
+    try:
+        return exif_data[key].value
+    except Exception:
+        return None
+
+
+def read_picture_date(exif_data):
+    obj_date = get_exif_value(exif_data, 'Exif.Image.DateTime')
+    if obj_date is None:
+        obj_date = get_exif_value(exif_data, 'Exif.Photo.DateTimeOriginal')
+        if obj_date is None:
+            obj_date = get_exif_value(exif_data, 'Exif.Photo.DateTimeDigitized')
+
+    return obj_date
+
+
+def date_from_exif_data(filename):
+    try:
+        exif_data = pyexiv2.ImageMetadata(filename)
+        exif_data.read()
+        obj_date = read_picture_date(exif_data)
+    except Exception as ex:
+        obj_date = None
+
+    return obj_date
+
+
+def get_date_from_foldername(filename):
+    dirname = os.path.basename(os.path.dirname(filename))
+    if dirname is None or len(dirname) < 4:
+        return None
+
+    return get_date_from_filename(dirname)
+
+
+def get_date_from_filename(filename):
+    try:
+        date_str = re.sub("[^\\d]", "", os.path.basename(filename))
+        if len(date_str) < 8:
+            return get_date_from_foldername(filename)
+
+        year = int(date_str[0:4])
+
+        if year < 1971 or year > datetime.datetime.now().year:
+            return get_date_from_foldername(filename)
+
+        month = int(date_str[4:6])
+        day = int(date_str[6:8])
+
+        hour = 0
+        min = 0
+        sec = 0
+
+        if len(date_str) >= 12:
+            try:
+                hour = int(date_str[8:10])
+                if hour > 23:
+                    hour = 23
+                min = int(date_str[10:12])
+                if min > 59:
+                    min = 59
+                if len(date_str) >= 14:
+                    sec = int(date_str[12:14])
+                    if sec > 59:
+                        sec = 59
+            except:
+                print("Error parsing time")
+
+        date = datetime.datetime(year, month, day, hour, min, sec)
+        return date
+    except Exception as e:
+        return get_date_from_foldername(filename)
+
+
+def get_date_from_file_date(filename):
+    file_date = time.localtime(os.path.getctime(filename))
+    obj_date = datetime.datetime(file_date.tm_year, file_date.tm_mon, file_date.tm_mday,
+                                 file_date.tm_hour, file_date.tm_min, file_date.tm_sec)
+    return obj_date
+
+
+def get_picture_date(picture_path):
+    obj_date = date_from_exif_data(picture_path)
+    if obj_date is None:
+        obj_date = get_date_from_filename(picture_path)
+        if obj_date is None:
+            obj_date = get_date_from_file_date(picture_path)
+
+    return obj_date
+
+
+def find_backup_folder(folder):
+    import glob
+    import getpass
+
+    paths = glob.glob(os.path.join("/media", getpass.getuser(), "*", "Fotos", folder))
+    if len(paths) == 1:
+        if os.path.isfile(paths[0]):
+            folder, file = os.path.split(paths[0])
+            return folder
+
+    return None
+

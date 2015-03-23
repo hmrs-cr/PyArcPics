@@ -1,0 +1,9 @@
+#!/bin/bash
+YEAR=$( basename `pwd` )
+for i in `seq -f "%02g" 1 12`; do
+	ls -d $YEAR-$i-* > /dev/null 
+	if [ $? -eq 0 ]; then 
+		mkdir $i	
+		mv $YEAR-$i-* $i
+	fi
+done
