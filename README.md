@@ -5,7 +5,7 @@ Collection of Python scripts that I use to handle, backup and share my huge pict
 
 GeotagPictures
 ---------------
-Download location data from Android application and add a geo-location exif tag to each picture in the given
+Download location data from [Android application](https://github.com/hmrs-cr/android-nmea-logger) and add a geo-location exif tag to each picture in the given
     directory recursively.
 
     Usage:
