@@ -13,7 +13,6 @@ class BuffData:
 
         db_filename = os.path.join(buff_folder, 'picture-data.db')
         self._connection = sqlite3.connect(db_filename, timeout=30.0)
-        self._connection.text_factory = str
         self._cursor = self._connection.cursor()
         self._connection.execute(
             "CREATE TABLE IF NOT EXISTS uploaded (file_name TEXT, photo_id TEXT UNIQUE, md5sum TEXT UNIQUE, "
@@ -26,7 +25,7 @@ class BuffData:
     def set_setting(self, key, value):
         with self._connection:
             self._connection.execute("INSERT OR REPLACE INTO settings (key, value) VALUES(?, ?)",
-                                     (str(key), str(value)))
+                                     (key, value))
 
     def get_setting(self, key):
         self._cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
@@ -53,7 +52,7 @@ class BuffData:
 
             if c > 0:
                 self._connection.execute("INSERT OR REPLACE INTO settings (key, value) VALUES(?, ?)",
-                                         (last_location_time_key, str(last_time)))
+                                         (last_location_time_key, last_time))
 
         return c
 
@@ -85,4 +84,4 @@ class BuffData:
         with self._connection:
             self._connection.execute(
                 "INSERT OR IGNORE INTO uploaded (file_name, photo_id, md5sum, upload_date)VALUES(?, ?, ?, ?) ",
-                (str(file_name), str(photo_id), str(md5sum), str(date),))
+                (file_name, photo_id, md5sum, date,))

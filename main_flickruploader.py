@@ -59,10 +59,15 @@ def main():
         sys.stderr.write("Flickr authentication error\n")
         exit()
 
-    scan(fup)
     print "Starting upload"
-    t = fup.upload_directory(options.folder)
-    print "DONE!!! in " + utils.format_time(t)
+    options.folder = unicode(options.folder, "UTF-8")
+    if os.path.isfile(options.folder):
+        fup.upload_file(options.folder)
+        print "Done."
+    else:
+        scan(fup)
+        t = fup.upload_directory(options.folder)
+        print "Done in " + utils.format_time(t)
 
 
 if __name__ == "__main__":

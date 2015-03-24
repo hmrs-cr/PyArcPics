@@ -76,7 +76,7 @@ class FlickrUploader:
                                       is_friend="0", format="xmlnode")
 
             print "Done with file " + file_name, " - Uploaded ", utils.sizeof_fmt(f.len), "in", \
-                utils.format_time(time.time() - t), "\r"
+                utils.format_time(time.time() - t), "\r",
             print
 
             if rsp['stat'] == u'ok':
