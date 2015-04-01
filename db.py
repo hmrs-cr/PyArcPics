@@ -19,7 +19,7 @@ class BuffData:
             "upload_date TEXT )")
         self._connection.execute(
             "CREATE TABLE IF NOT EXISTS location (timestamp INTEGER PRIMARY KEY, latitude REAL, longitude REAL, "
-            "altitude REAL )")
+            "altitude REAL, address TEXT )")
         self._connection.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
 
     def set_setting(self, key, value):
@@ -58,13 +58,32 @@ class BuffData:
 
     def get_location_from_timestamp(self, timestamp, offset=None):
         if offset is None:
-            offset = 1000 * 60 * 15
-        self._cursor.execute("SELECT latitude, longitude FROM location WHERE timestamp <= ? AND "
+            offset = 15
+
+        offset *= 1000 * 60
+        print offset
+        self._cursor.execute("SELECT latitude, longitude, address, timestamp FROM location WHERE timestamp <= ? AND "
                              "timestamp >= ? ORDER BY ABS(? - timestamp) LIMIT 1",
                              (timestamp + offset, timestamp - offset, timestamp,))
         result = self._cursor.fetchall()
         if len(result) == 1:
-            return result[0]
+            location = result[0]
+            lat, lon, add, time = location
+            if not add:
+                try:
+                    from geopy.geocoders import Nominatim
+                    geolocator = Nominatim()
+                    address = geolocator.reverse(str(lat) + ", " + str(lon), exactly_one=True).address
+                    if address:
+                        location = lat, lon, address, time
+                        with self._connection:
+                            self._connection.execute("UPDATE location SET address=? WHERE timestamp = ?",
+                                                     (address, time))
+                except Exception as e:
+                    print e
+                    pass
+
+            return location
 
         return None
 
