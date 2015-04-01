@@ -13,6 +13,7 @@ def main():
     parser.add_argument('folder', help='The source with pictures to geotag.', nargs='?', default=None)
     parser.add_argument('-d', dest="download_url", help='Download location data from url.', nargs='?', default=None)
     parser.add_argument('-o', dest="overwrite",  action="store_true", help='Overwrite location tag if exists.')
+    parser.add_argument('-r', dest="time_range",  help='Location query time range in minutes. (default 15)', type=int, default=15)
 
     options = parser.parse_args()
 
@@ -20,7 +21,7 @@ def main():
         parser.print_help()
         exit()
 
-    tagger = picgeotager.PicGotagger()
+    tagger = picgeotager.PicGotagger(options.time_range, options.overwrite)
 
     if options.download_url is not None:
         if not options.download_url.startswith("http://"):
@@ -35,7 +36,7 @@ def main():
         print "Added", added, "locations to database."
 
     if options.folder is not None:
-        tagged_count, already_tagged_count, error_count = tagger.geotag_pictures(options.folder, options.overwrite)
+        tagged_count, already_tagged_count, error_count = tagger.geotag_pictures(options.folder)
         print tagged_count, "pictures tagged."
         print already_tagged_count, "pictures were already tagged."
         print error_count, "errors."

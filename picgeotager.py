@@ -39,7 +39,7 @@ class GeotagStatus:
     tagged, already_tagged, failed = range(3)
 
 
-def set_gps_location(file_name, lat, lng, overwrite=False):
+def set_gps_location(file_name, lat, lng, overwrite=False, address=None):
     """Adds GPS position as EXIF metadata
 
     Keyword arguments:
@@ -78,17 +78,25 @@ def set_gps_location(file_name, lat, lng, overwrite=False):
     exiv_image["Exif.GPSInfo.GPSVersionID"] = '2 0 0 0'
 
     exiv_image.write(True)
-    print file_name, "-> Tagged!", "(overwrited)" if overwrite and has_geotag else ""
+
+    print file_name, "-> Tagged!", "(overwrited)" if overwrite and has_geotag else "",
+    if address:
+        print "(" + address + ")",
+
+    print "http://maps.google.com/?ll=%(la)s,%(lo)s" % {"la": str(lat), "lo": str(lng)}
+
     return GeotagStatus.tagged
 
 
 class PicGotagger:
-    def __init__(self):
+    def __init__(self, time_range=15, overwrite=False):
         self._overwrite = False
         self._failed_count = 0
         self._already_tagged_count = 0
         self._tagged_count = 0
         self._db = None
+        self._time_range = time_range
+        self._overwrite = overwrite
 
     def _init_db(self):
         if self._db is None:
@@ -123,13 +131,13 @@ class PicGotagger:
         pic_date_millis = long(time.mktime(pic_date.timetuple()) * 1000)
 
         self._init_db()
-        location = self._db.get_location_from_timestamp(pic_date_millis)
+        location = self._db.get_location_from_timestamp(pic_date_millis, self._time_range)
         if location is None:
             print picture_path, "-> No location found"
             return GeotagStatus.failed
 
-        lat, lon = location
-        return set_gps_location(picture_path, lat, lon, self._overwrite)
+        lat, lon, address, t = location
+        return set_gps_location(picture_path, lat, lon, self._overwrite, address)
 
     def _geotag_pictures(self, folder_path):
         try:
@@ -160,10 +168,9 @@ class PicGotagger:
             elif result == GeotagStatus.failed:
                 self._failed_count += 1
 
-    def geotag_pictures(self, folder_path, overwrite=False):
+    def geotag_pictures(self, folder_path):
         self._failed_count = 0
         self._already_tagged_count = 0
         self._tagged_count = 0
-        self._overwrite = overwrite
         self._geotag_pictures(folder_path)
         return self._tagged_count, self._already_tagged_count, self._failed_count
