@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description='Upload to Flickr all JPEG pictures in the given folder recursively')
     parser.add_argument('folder', help='The folder to search for pictures')
     parser.add_argument('-s', dest='scan_only', action="store_true", help="Scan folder but don't upload pictures")
+    parser.add_argument('-n', dest='no_chk_remote_chksum', action="store_true", help="Do not check remote checksum")
     parser.add_argument('-a', dest='auth_only', action="store_true", help="Authenticate to Flickr service")
     options = parser.parse_args()
 
@@ -51,16 +52,20 @@ def main():
             print "Authentication failed."
         exit()
 
+    print "Scaning..."
     if options.scan_only:
         scan(fup)
         exit()
 
+    print "Authenticating..."
     if not fup.authenticate():
         sys.stderr.write("Flickr authentication error\n")
         exit()
 
     print "Starting upload"
     options.folder = unicode(options.folder, "UTF-8")
+    if options.no_chk_remote_chksum:
+       fup.check_remote_chksum = False
     if os.path.isfile(options.folder):
         fup.upload_file(options.folder)
         print "Done."

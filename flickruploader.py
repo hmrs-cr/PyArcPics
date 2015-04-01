@@ -25,6 +25,7 @@ class FlickrUploader:
         self._sizecount = 0
         self._failcount = 0
         self._starttime = 0
+        self.check_remote_chksum = True
 
     def get_photoid_from_md5sum(self, md5sum):
         for photo in self._flickr.walk(user_id="me", tags=md5_tag_prefix + md5sum):
@@ -56,7 +57,9 @@ class FlickrUploader:
                 md5sum = utils.get_md5sum_from_file(file_name)
                 pass
 
-            photoid = self.get_photoid_from_md5sum(md5sum)
+            photoid = 0
+            if self.check_remote_chksum:
+                photoid = self.get_photoid_from_md5sum(md5sum)
             if photoid != 0:
                 print "File", file_name, "already uploaded. ID:", photoid
                 return photoid
@@ -79,12 +82,19 @@ class FlickrUploader:
                 utils.format_time(time.time() - t), "\r",
             print
 
+            sys.stdout.flush()
+
             if rsp['stat'] == u'ok':
                 return rsp.photoid[0].text
 
             return 0
         except Exception as e:
-            sys.stderr.write("Error on " + file_name + ": " + str(e) + "\n")
+            try:
+                print "Error on: ", file_name
+                sys.stderr.write(u"Error on " + file_name + u": " + unicode(e) + u"\n")
+            except:
+                sys.stderr.write("Error printing error.\n")
+                
             return 0
 
     def _internal_scan_directory(self, dir_name):
@@ -142,7 +152,7 @@ class FlickrUploader:
 
             # if file is not jpg then continue
             if not utils.is_picture(src_file):
-                sys.stderr.write("File " + filename + " is not an image.\n")
+                print("File " + filename + " is not an image.\n")
                 continue
 
             self._count += 1
