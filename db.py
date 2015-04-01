@@ -61,7 +61,6 @@ class BuffData:
             offset = 15
 
         offset *= 1000 * 60
-        print offset
         self._cursor.execute("SELECT latitude, longitude, address, timestamp FROM location WHERE timestamp <= ? AND "
                              "timestamp >= ? ORDER BY ABS(? - timestamp) LIMIT 1",
                              (timestamp + offset, timestamp - offset, timestamp,))
