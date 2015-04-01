@@ -122,22 +122,25 @@ class PicGotagger:
             return 0
 
     def geotag_picture(self, picture_path):
+        try:
+            pic_date = utils.get_picture_date(picture_path)
+            if pic_date is None:
+                print picture_path, "-> No date found"
+                return GeotagStatus.failed
 
-        pic_date = utils.get_picture_date(picture_path)
-        if pic_date is None:
-            print picture_path, "-> No date found"
+            pic_date_millis = long(time.mktime(pic_date.timetuple()) * 1000)
+
+            self._init_db()
+            location = self._db.get_location_from_timestamp(pic_date_millis, self._time_range)
+            if location is None:
+                print picture_path, "-> No location found"
+                return GeotagStatus.failed
+
+            lat, lon, address, t = location
+            return set_gps_location(picture_path, lat, lon, self._overwrite, address)
+        except Exception as e:
+            print picture_path, "-> Error tagging:", e
             return GeotagStatus.failed
-
-        pic_date_millis = long(time.mktime(pic_date.timetuple()) * 1000)
-
-        self._init_db()
-        location = self._db.get_location_from_timestamp(pic_date_millis, self._time_range)
-        if location is None:
-            print picture_path, "-> No location found"
-            return GeotagStatus.failed
-
-        lat, lon, address, t = location
-        return set_gps_location(picture_path, lat, lon, self._overwrite, address)
 
     def _geotag_pictures(self, folder_path):
         try:
@@ -155,12 +158,7 @@ class PicGotagger:
             if not os.path.isfile(src_file) or not utils.is_picture(src_file):
                 continue
             
-            result = GeotagStatus.failed
-            try:
-                result = self.geotag_picture(src_file)
-            except Exception as e:
-                print src_file, "-> Error tagging:", e
-                
+            result = self.geotag_picture(src_file)
             if result == GeotagStatus.tagged:
                 self._tagged_count += 1
             elif result == GeotagStatus.already_tagged:

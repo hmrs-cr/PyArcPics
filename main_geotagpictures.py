@@ -2,6 +2,7 @@
 # coding=UTF8
 
 import argparse
+import os
 import urllib
 import picgeotager
 
@@ -12,8 +13,9 @@ def main():
     parser = argparse.ArgumentParser(description='Geotag pictures in the given folder.')
     parser.add_argument('folder', help='The source with pictures to geotag.', nargs='?', default=None)
     parser.add_argument('-d', dest="download_url", help='Download location data from url.', nargs='?', default=None)
-    parser.add_argument('-o', dest="overwrite",  action="store_true", help='Overwrite location tag if exists.')
-    parser.add_argument('-r', dest="time_range",  help='Location query time range in minutes. (default 15)', type=int, default=15)
+    parser.add_argument('-o', dest="overwrite", action="store_true", help='Overwrite location tag if exists.')
+    parser.add_argument('-r', dest="time_range", help='Location query time range in minutes. (default 15)', type=int,
+                        default=15)
 
     options = parser.parse_args()
 
@@ -35,8 +37,19 @@ def main():
         added = tagger.update_location_data(options.download_url)
         print "Added", added, "locations to database."
 
+    tagged_count, already_tagged_count, error_count = (0, 0, 0)
     if options.folder is not None:
-        tagged_count, already_tagged_count, error_count = tagger.geotag_pictures(options.folder)
+        if os.path.isfile(options.folder):
+            result = tagger.geotag_picture(options.folder)
+            if result == picgeotager.GeotagStatus.tagged:
+                tagged_count += 1
+            elif result == picgeotager.GeotagStatus.already_tagged:
+                already_tagged_count += 1
+            elif result == picgeotager.GeotagStatus.failed:
+                error_count += 1
+        else:
+            tagged_count, already_tagged_count, error_count = tagger.geotag_pictures(options.folder)
+
         print tagged_count, "pictures tagged."
         print already_tagged_count, "pictures were already tagged."
         print error_count, "errors."
