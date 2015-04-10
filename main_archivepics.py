@@ -35,7 +35,11 @@ if __name__ == "__main__":
         exit()
 
     dest_folder = utils.find_backup_folder(utils.primary_backup_marker)
-    if dest_folder is None or not os.path.isfile(os.path.join(dest_folder, utils.primary_backup_marker)):
+    if dest_folder is None:
+        sys.stderr.write("Could not determine backup folder\n")
+        exit()
+
+    if not os.path.isfile(os.path.join(dest_folder, utils.primary_backup_marker)):
         sys.stderr.write("Destination folder is not a valid backup destination: " + dest_folder + "\n")
         exit()
 
