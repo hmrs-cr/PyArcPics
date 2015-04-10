@@ -166,15 +166,34 @@ def get_picture_date(picture_path):
     return obj_date
 
 
-def find_backup_folder(folder):
-    import glob
-    import getpass
+def get_drive_list():
+    if os.name == "posix":
+        import commands
 
-    paths = glob.glob(os.path.join("/media", getpass.getuser(), "*", "Fotos", folder))
-    if len(paths) == 1:
-        if os.path.isfile(paths[0]):
-            folder, file = os.path.split(paths[0])
-            return folder
+        mount = commands.getoutput('mount -v')
+        lines = mount.split('\n')
+        return map(lambda line: line.split()[2], filter(lambda l: l.startswith("/dev"), lines))
+    elif os.name == "nt":
+        import win32api
+
+        dv = win32api.GetLogicalDriveStrings()
+        return dv.split('\000')[:-1]
+    else:
+        return None
+
+
+def find_backup_folder(folder):
+    drives = get_drive_list()
+    import glob
+    for drive in drives:
+        if drive == "/" or drive == "/home":
+            continue
+
+        paths = glob.glob(os.path.join(drive, "*", folder))
+        if len(paths) == 1:
+            if os.path.isfile(paths[0]):
+                folder, file = os.path.split(paths[0])
+                return folder
 
     return None
 
