@@ -2,6 +2,7 @@
 # coding=UTF8
 
 import argparse
+from getpass import getpass
 import os
 import sys
 
@@ -37,7 +38,7 @@ def main():
         options.user_name = raw_input("Please enter Google account user name: ")
 
     if not options.password:
-        options.password = raw_input("Please enter Google account password: ")
+        options.password = getpass("Please enter Google account password: ")
 
     gup = GoogleUploader(options.user_name, options.password)
 
