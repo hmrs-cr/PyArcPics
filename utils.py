@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 import time
 import pyexiv2
@@ -36,7 +37,7 @@ def format_time(_time):
     return "0 seconds"
 
 
-def format_eta(bits_per_second, elapsed_bits, total_bits):    
+def format_eta(bits_per_second, elapsed_bits, total_bits):
     remaining_bits = total_bits - elapsed_bits
     remaining_time = remaining_bits / bits_per_second
     return format_time(remaining_time)
@@ -164,6 +165,17 @@ def get_picture_date(picture_path):
             obj_date = get_date_from_file_date(picture_path)
 
     return obj_date
+
+
+def get_api_keys_from_config(config_file_name):
+    config_file_name = os.path.expanduser(config_file_name)
+    try:
+        config = json.load(open(config_file_name))
+        api_key = unicode(config["api_key"])
+        api_secret = unicode(config["api_secret"])
+        return api_key, api_secret
+    except Exception:
+        return None, None
 
 
 def get_drive_list():

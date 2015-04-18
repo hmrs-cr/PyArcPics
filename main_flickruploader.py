@@ -28,17 +28,10 @@ def main():
         parser.print_help()
         exit()
 
-    api_key = None
-    api_secret = None
-    config_file_name = os.path.expanduser("~/.hmsoft/flickr.json")
-    try:
-        config = json.load(open(config_file_name))
-        api_key = unicode(config["api_key"])
-        api_secret = unicode(config["api_secret"])
-    except Exception as e:
-        sys.stderr.write("Error reading config: " + str(e) + "\n")
-        exit()
+    config_file_name = "~/.hmsoft/flickr.json"
+    api_keys = utils.get_api_keys_from_config(config_file_name)
 
+    api_key, api_secret = api_keys
     if api_key is None or api_secret is None:
         sys.stderr.write("Please add flickr API access keys to config file: " + config_file_name + "\n")
         exit()
