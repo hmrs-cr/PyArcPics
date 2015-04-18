@@ -88,7 +88,6 @@ class GoogleUploader(PictureUploader):
 
             photo = self._gd_client.InsertPhotoSimple(album_url, fname, "", file_name)
             photo_id = photo.gphoto_id.text
-            print photo_id
         except Exception as e:
             print "Failed to upload file", fname + ":", e
 
