@@ -1,25 +1,33 @@
 #!/usr/bin/python
 # coding=UTF8
+
 import pyexiv2
 import os
 import Image
 import time
+import webbrowser
 
+import gdata.gauth
 import gdata.photos.service
 import gdata.media
 import gdata.geo
 import sys
-from pictureuploader import PictureUploader
 
+from picasaclient import PicasaClient
+from pictureuploader import PictureUploader
 import utils
 
 
+SCOPES = "https://picasaweb.google.com/data/"
+USER_AGENT = "personal-photo/video-uploader"
+
+
 class GoogleUploader(PictureUploader):
-    def __init__(self, email, password):
+    def __init__(self, client_id, client_secret):
         PictureUploader.__init__(self)
-        self._gd_client = gdata.photos.service.PhotosService()
-        self._gd_client.email = email  # Set your Picasaweb e-mail address...
-        self._gd_client.password = password  # ... and password
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._gd_client = PicasaClient()
         self._autobackup_album = None
         self._set_service_name("gphotos")
         self.original_size = False
@@ -96,10 +104,30 @@ class GoogleUploader(PictureUploader):
 
         return photo_id
 
+    def _load_token(self):
+        tokenb = self._dataHelper.get_setting("gphotos-token")
+        if tokenb is not None:
+            return gdata.gauth.token_from_blob(tokenb)
+        return None
+
+    def _save_token(self, token):
+        tokenb = gdata.gauth.token_to_blob(token)
+        self._dataHelper.set_setting("gphotos-token", tokenb)
+
     def authenticate(self):
         try:
-            self._gd_client.source = 'personal-uploader-hmsoft-com'
-            self._gd_client.ProgrammaticLogin()
+            token = self._load_token()
+            if token is None:
+                token = gdata.gauth.OAuth2Token(
+                    client_id=self._client_id, client_secret=self._client_secret, scope=SCOPES,
+                    user_agent=USER_AGENT)
+
+                authorize_url = token.generate_authorize_url()
+                webbrowser.open_new_tab(authorize_url)
+                token.get_access_token(unicode(raw_input('Verifier code: ')))
+                self._save_token(token)
+
+            token.authorize(self._gd_client)
             return True
         except Exception as e:
             sys.stderr.write(str(e) + "\n")

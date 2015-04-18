@@ -2,7 +2,6 @@
 # coding=UTF8
 
 import argparse
-from getpass import getpass
 import os
 import sys
 
@@ -20,8 +19,6 @@ def main():
     parser = argparse.ArgumentParser(description='Upload to Google+ all JPEG pictures in the given folder recursively')
     parser.add_argument('folder', help='The folder to search for pictures')
     parser.add_argument('-s', dest='scan_only', action="store_true", help="Scan folder but don't upload pictures")
-    parser.add_argument('-u', dest="user_name",  help='Google account user name.', default=None)
-    parser.add_argument('-p', dest="password", help='Google account password.', default=None)
     parser.add_argument('-r', dest="small_size", action="store_true", help='Reduce image size before upload.')
 
     options = parser.parse_args()
@@ -34,13 +31,15 @@ def main():
         scan(GoogleUploader("", ""))
         exit()
 
-    if not options.user_name:
-        options.user_name = raw_input("Please enter Google account user name: ")
+    config_file_name = "~/.hmsoft/gphotos.json"
+    api_keys = utils.get_api_keys_from_config(config_file_name)
 
-    if not options.password:
-        options.password = getpass("Please enter Google account password: ")
+    api_key, api_secret = api_keys
+    if api_key is None or api_secret is None:
+        sys.stderr.write("Please add Google API access keys to config file: " + config_file_name + "\n")
+        exit()
 
-    gup = GoogleUploader(options.user_name, options.password)
+    gup = GoogleUploader(api_key, api_secret)
 
     print "Authenticating..."
     if not gup.authenticate():
