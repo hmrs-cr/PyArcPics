@@ -63,15 +63,13 @@ Google+Uploader
  Upload all the pictures in the given folder recursively to Google+ autobackup folder. Keeps track the pictures already uploaded.
 
     Usage:
-        gphotosup [-h] [-s] [-r] [-u USER_NAME] [-p PASSWORD] folder
+        gphotosup [-h] [-s] [-r] folder
         
         folder      The folder to search for pictures
         
         optional arguments:
            -s            Scan folder but don't upload pictures
            -r            Reduce image size to 2048x2048 before upload.
-           -u USER_NAME  Google account user name.
-           -p PASSWORD   Google account password.
 
 
 Disclaimer
