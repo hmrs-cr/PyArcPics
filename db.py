@@ -92,14 +92,42 @@ class BuffData:
                 "INSERT OR IGNORE INTO location (timestamp, latitude, longitude, altitude)VALUES(?, ?, ?, ?) ",
                 location)
 
-    def file_already_uploaded(self, md5sum):
-        self._cursor.execute("SELECT photo_id FROM uploaded WHERE md5sum = ? AND photo_id <> ?", (md5sum, "0",))
-        uploaded = len(self._cursor.fetchall()) > 0
-        return uploaded
+    def _get_file_already_uploaded_dict(self, md5sum):
+        self._cursor.execute("SELECT photo_id, upload_date FROM uploaded WHERE md5sum = ? AND photo_id IS NOT NULL", (md5sum, ))
+        result = self._cursor.fetchall()
+        if len(result) == 1:
+            pid, udate = result[0]
+            return dict(item.split("=") for item in pid.split(";")), dict(item.split("=") for item in udate.split(";"))
+        return None, None
 
-    def set_file_uploaded(self, file_name, photo_id, md5sum):
+    def file_already_uploaded(self, service_name, md5sum):
+        if service_name is None:
+            raise ValueError("service_name is not set")
+        d, u = self._get_file_already_uploaded_dict(md5sum)
+        if d is not None:
+            try:
+                return d[service_name] is not None
+            except KeyError:
+                return False
+
+        return False
+
+    def set_file_uploaded(self, file_name, service_name, photo_id, md5sum):
+        if service_name is None:
+            raise ValueError("service_name is not set")
+        d, u = self._get_file_already_uploaded_dict(md5sum)
         date = datetime.datetime.now().isoformat()
-        with self._connection:
-            self._connection.execute(
-                "INSERT OR IGNORE INTO uploaded (file_name, photo_id, md5sum, upload_date)VALUES(?, ?, ?, ?) ",
-                (file_name, photo_id, md5sum, date,))
+        if d is not None:
+            d[service_name] = photo_id
+            u[service_name] = date
+            ids = ";".join(["=".join([key, str(val)]) for key, val in d.items()])
+            dates = ";".join(["=".join([key, str(val)]) for key, val in u.items()])
+            with self._connection:
+                self._connection.execute(
+                    "UPDATE uploaded SET photo_id = ?, upload_date = ? WHERE md5sum = ?",
+                    (ids, dates, md5sum))
+        else:
+            with self._connection:
+                self._connection.execute(
+                    "INSERT OR IGNORE INTO uploaded (file_name, photo_id, md5sum, upload_date)VALUES(?, ?, ?, ?) ",
+                    (file_name, service_name + "=" + photo_id, md5sum, service_name + "=" + date,))
