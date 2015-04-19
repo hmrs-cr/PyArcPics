@@ -66,7 +66,7 @@ class GoogleUploader(PictureUploader):
             h = max_width
 
         img = img.resize((w, h), Image.ANTIALIAS)
-        img.save(rez_file_name)
+        img.save(rez_file_name, None, quality=88)
 
         org_exif_data = pyexiv2.ImageMetadata(org_file_name)
         org_exif_data.read()
@@ -139,7 +139,6 @@ class GoogleUploader(PictureUploader):
 
             # Hack to fix possible bug in Google SDK (I have no idea what I'm doing)
             token._refresh(self._gd_client.http_client.request)
-            print token.token_expiry
 
             token.authorize(self._gd_client)
 
