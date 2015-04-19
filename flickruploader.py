@@ -1,11 +1,9 @@
-import os
 import sys
-import time
 import webbrowser
 
 import flickrapi
-from pictureuploader import PictureUploader
 
+from pictureuploader import PictureUploader, FileWithCallback
 import utils
 
 
@@ -29,25 +27,6 @@ class FlickrUploader(PictureUploader):
         return 0
 
     def upload_file(self, file_name, md5sum=None):
-        class FileWithCallback(object):
-            def __init__(self, filename):
-                self.file = open(filename, 'rb')
-                self._lastp = 0
-                # the following attributes and methods are required
-                self.len = os.path.getsize(filename)
-                self.fileno = self.file.fileno
-                self.tell = self.file.tell
-
-            def _callback(self, p):
-                if self._lastp != p:
-                    print "Uploading file " + file_name, str(p) + "%\r",
-                    sys.stdout.flush()
-                    self._lastp = p
-
-            def read(self, size):
-                self._callback(self.tell() * 100 // self.len)
-                return self.file.read(size)
-
         try:
             if md5sum is None:
                 md5sum = utils.get_md5sum_from_file(file_name)
@@ -69,14 +48,10 @@ class FlickrUploader(PictureUploader):
                 tags += " " + date_day_tag_prefix + date.strftime("%Y-%m-%d")
 
             f = FileWithCallback(file_name)
-            t = time.time()
             rsp = self._flickr.upload(file_name, f, title="",
                                       description="", tags=tags, is_public="0", is_family="0",
                                       is_friend="0", format="xmlnode")
-
-            print "Done with file " + file_name, " - Uploaded ", utils.sizeof_fmt(f.len), "in", \
-                utils.format_time(time.time() - t), "\r",
-            print
+            f.all_done()
 
             sys.stdout.flush()
 

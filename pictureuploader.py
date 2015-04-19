@@ -6,8 +6,47 @@ from db import BuffData
 import utils
 
 
-class PictureUploader:
+class FileWithCallback(object):
+    def __init__(self, filename, org_filename=None):
+        if org_filename is None:
+            org_filename = filename
 
+        self.file = open(filename, 'rb')
+        self.filename = filename
+        self._org_filename = org_filename
+        self._lastp = 0
+        # the following attributes and methods are required
+        self.len = os.path.getsize(filename)
+        self.fileno = self.file.fileno
+        self.tell = self.file.tell
+        self._start_time = time.time()
+        self._done_called = False
+
+    def callback(self, p):
+        if self._lastp != p:
+            print "Uploading file " + self._org_filename, str(p) + "%\r",
+            sys.stdout.flush()
+            self._lastp = p
+
+    def all_done(self):
+        if self._done_called:
+            return
+
+        print "Done with file " + self._org_filename, " - Uploaded ", utils.sizeof_fmt(self.len), "in", \
+            utils.format_time(time.time() - self._start_time), "\r",
+        print
+        self._done_called = True
+
+    def read(self, size):
+        self.callback(self.tell() * 100 // self.len)
+        r = self.file.read(size)
+        done = r is None or r == ""
+        if done:
+            self.all_done()
+        return r
+
+
+class PictureUploader:
     def __init__(self):
         self._cloud_service_name = None
         self._dataHelper = BuffData()

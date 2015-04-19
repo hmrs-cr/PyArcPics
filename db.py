@@ -24,8 +24,11 @@ class BuffData:
 
     def set_setting(self, key, value):
         with self._connection:
-            self._connection.execute("INSERT OR REPLACE INTO settings (key, value) VALUES(?, ?)",
-                                     (key, value))
+            if value is None:
+                self._connection.execute("DELETE FROM settings WHERE key = ?", (key, ))
+            else:
+                self._connection.execute("INSERT OR REPLACE INTO settings (key, value) VALUES(?, ?)",
+                                         (key, value))
 
     def get_setting(self, key):
         self._cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
