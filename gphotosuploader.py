@@ -14,12 +14,14 @@ import gdata.geo
 import sys
 
 from picasaclient import PicasaClient
-from pictureuploader import PictureUploader
+from pictureuploader import PictureUploader, FileWithCallback
+
 import utils
 
 
 SCOPES = "https://picasaweb.google.com/data/"
 USER_AGENT = "personal-photo/video-uploader"
+TOKEN_KEY = "gphotos-token"
 
 
 class GoogleUploader(PictureUploader):
@@ -86,7 +88,11 @@ class GoogleUploader(PictureUploader):
         temp_file_name = None
         photo_id = 0
         try:
-            if not self.original_size:
+            content = "image/jpeg"
+            if fname.endswith(".mp4"):
+                content = "video/mp4"
+
+            if content.startswith("image") and not self.original_size:
                 path, name = os.path.split(file_name)
                 temp_file_name = os.path.join(path, ".resizing___" + name)
                 if self.resize_image(file_name, temp_file_name):
@@ -94,7 +100,8 @@ class GoogleUploader(PictureUploader):
                 else:
                     temp_file_name = None
 
-            photo = self._gd_client.InsertPhotoSimple(album_url, fname, "", file_name)
+            f = FileWithCallback(file_name)
+            photo = self._gd_client.InsertPhotoSimple(album_url, fname, "", f, content)
             photo_id = photo.gphoto_id.text
         except Exception as e:
             print "Failed to upload file", fname + ":", e
@@ -105,14 +112,17 @@ class GoogleUploader(PictureUploader):
         return photo_id
 
     def _load_token(self):
-        tokenb = self._dataHelper.get_setting("gphotos-token")
+        tokenb = self._dataHelper.get_setting(TOKEN_KEY)
         if tokenb is not None:
             return gdata.gauth.token_from_blob(tokenb)
         return None
 
     def _save_token(self, token):
-        tokenb = gdata.gauth.token_to_blob(token)
-        self._dataHelper.set_setting("gphotos-token", tokenb)
+        if token is None:
+            self._dataHelper.set_setting(TOKEN_KEY, None)
+        else:
+            tokenb = gdata.gauth.token_to_blob(token)
+            self._dataHelper.set_setting(TOKEN_KEY, tokenb)
 
     def authenticate(self):
         try:
@@ -127,8 +137,17 @@ class GoogleUploader(PictureUploader):
                 token.get_access_token(unicode(raw_input('Verifier code: ')))
                 self._save_token(token)
 
+            # Hack to fix possible bug in Google SDK (I have no idea what I'm doing)
+            token._refresh(self._gd_client.http_client.request)
+            print token.token_expiry
+
             token.authorize(self._gd_client)
+
             return True
+        except gdata.gauth.OAuth2AccessTokenError as e:
+            self._save_token(None)
+            sys.stderr.write(str(e) + "\n")
         except Exception as e:
             sys.stderr.write(str(e) + "\n")
-            return False
+
+        return False

@@ -40,13 +40,33 @@ class PicasaClient(gdata.client.GDClient):
         return self.get_feed(uri, auth_token=None,
                              converter=converter, **kwargs)
 
-    def InsertPhotoSimple(self, album_uri, title, summary, filename,
+    def InsertPhotoSimple(self, album_uri, title, summary, fileobj,
                           content_type='image/jpeg', keywords=None):
         http_request = atom.http_core.HttpRequest()
-        f = open(filename, 'rb')
-        http_request.add_body_part(f, content_type, os.path.getsize(filename))
-        http_request.headers['Slug'] = title
+
+        size = 0
+        if hasattr(fileobj, "len"):
+            size = fileobj.len
+
+        if isinstance(fileobj, str):
+            size = os.path.getsize(fileobj)
+            fileobj = open(fileobj, 'rb')
+
+        if size == 0:
+            raise ValueError("Could not determine data size")
+
         uri = '%s://%s%s' % (self.scheme, self.server, album_uri)
+
+        metadata = gdata.photos.PhotoEntry()
+        metadata.title = atom.Title(text=title)
+        metadata.summary = atom.Summary(text=summary, summary_type='text')
+        if keywords is not None:
+            if isinstance(keywords, list):
+                keywords = ','.join(keywords)
+            metadata.media.keywords = gdata.media.Keywords(text=keywords)
+
+        http_request.add_body_part(str(metadata), "application/atom+xml")
+        http_request.add_body_part(fileobj, content_type, size)
 
         def converter(response):
             body = response.read()
