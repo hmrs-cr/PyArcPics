@@ -58,6 +58,11 @@ class PictureUploader:
         self._sizecount = 0
         self._failcount = 0
         self._starttime = 0
+        self._allowed_file_exts = [".jpg", ".jpeg", ".png"]
+
+    def is_valid_file_type(self, file_name):
+        fname, fext = os.path.splitext(file_name)
+        return fext.lower() in self._allowed_file_exts
 
     def _set_service_name(self, service_name):
         self._cloud_service_name = service_name
@@ -79,7 +84,7 @@ class PictureUploader:
                 self._internal_scan_directory(src_file)
                 continue
 
-            if not os.path.isfile(src_file) or not utils.is_picture(src_file):
+            if not os.path.isfile(src_file) or not self.is_valid_file_type(src_file):
                 self._nonpic_size += utils.get_file_size(src_file)
                 self._nonpiccount += 1
                 continue
@@ -116,8 +121,8 @@ class PictureUploader:
                 continue
 
             # if file is not jpg then continue
-            if not utils.is_picture(src_file):
-                print("File " + filename + " is not an image.\n")
+            if not self.is_valid_file_type(src_file):
+                print("File " + filename + " is not an allowed file type.\n")
                 continue
 
             self._count += 1

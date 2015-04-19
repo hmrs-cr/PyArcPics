@@ -209,3 +209,32 @@ def find_backup_folder(folder):
 
     return None
 
+
+MIME_TYPES = {
+    "bmp": "image/bmp",
+    "gif": "image/gif",
+    "jpeg": "image/jpeg",
+    "jpg": "image/jpeg",
+    "png": "image/png",
+    "3gpp": "video/3gpp",
+    "3gp": "video/3gpp",
+    "avi": "video/avi",
+    "mov": "video/quicktime",
+    "mp4": "video/mp4",
+    "mpeg": "video/mpeg",
+    "mpg": "video/mpeg",
+    "mpeg4": "video/mpeg4",
+    "asf": "video/x-ms-asf",
+    "wmv": "video/x-ms-wmv"
+}
+
+
+def file_name_to_mimetype(file_name):
+    n, e = os.path.splitext(file_name)
+    try:
+        return MIME_TYPES[e.lower().lstrip(".")]
+    except KeyError:
+        return None
+
+
+

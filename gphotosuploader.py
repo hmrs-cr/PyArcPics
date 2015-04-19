@@ -23,6 +23,8 @@ SCOPES = "https://picasaweb.google.com/data/"
 USER_AGENT = "personal-photo/video-uploader"
 TOKEN_KEY = "gphotos-token"
 
+MAX_VIDEO_SIZE = 104857600
+
 
 class GoogleUploader(PictureUploader):
     def __init__(self, client_id, client_secret):
@@ -33,6 +35,7 @@ class GoogleUploader(PictureUploader):
         self._autobackup_album = None
         self._set_service_name("gphotos")
         self.original_size = False
+        self._allowed_file_exts += [".mov", ".mp4", ".avi", ".mpg", ".mpeg", ".3gp", ".3gpp"]
 
     def get_autobackup_album_url(self):
         if self._autobackup_album is None:
@@ -88,9 +91,10 @@ class GoogleUploader(PictureUploader):
         temp_file_name = None
         photo_id = 0
         try:
-            content = "image/jpeg"
-            if fname.endswith(".mp4"):
-                content = "video/mp4"
+            content = utils.file_name_to_mimetype(file_name)
+            if content is None:
+                sys.stderr.write("Can't determine mime type for file " + file_name + "\n")
+                return 0
 
             if content.startswith("image") and not self.original_size:
                 path, name = os.path.split(file_name)
@@ -100,7 +104,12 @@ class GoogleUploader(PictureUploader):
                 else:
                     temp_file_name = None
 
+
             f = FileWithCallback(file_name)
+            if content.startswith("video") and f.len > MAX_VIDEO_SIZE:
+                sys.stderr.write("File " + file_name + " is bigger than " + utils.sizeof_fmt(MAX_VIDEO_SIZE) + "\n")
+                return 0
+
             photo = self._gd_client.InsertPhotoSimple(album_url, fname, "", f, content)
             photo_id = photo.gphoto_id.text
         except Exception as e:
