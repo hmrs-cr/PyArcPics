@@ -20,6 +20,7 @@ class PictureArchiver:
     _success_count = 0
     _currImgFileName = None
     _correct_dates_only = False
+    _start_size = 0
 
     onAdvance = None
 
@@ -68,9 +69,9 @@ class PictureArchiver:
         except Exception as e:
             self._error(e)
 
-    def _is_picture(self, file_name):
+    def _is_valid_backup_file(self, file_name):
         fname, fext = os.path.splitext(file_name)
-        return fext.lower() in [".jpg", ".jpeg", ".png", ".mov", ".avi", ".mp4", ".mpg", ".mpeg", ".lrv", ".thm"]
+        return fext.lower().lstrip(".") in utils.MIME_TYPES.keys()
 
     def _get_dest_folder_name(self, obj_date):
         if obj_date is not None:
@@ -122,13 +123,20 @@ class PictureArchiver:
             if not os.path.isfile(src_file):
                 continue
 
-            if not self._is_picture(src_file):
+            if not self._is_valid_backup_file(src_file):
                 self._log("SKIPING: '" + src_file + "' is not a picture or video")
                 continue
 
+            if self._start_size > 0:
+                fs = os.path.getsize(src_file)
+                if self._start_size > fs:
+                    self._log("SKIPING: " + src_file + " is not larger than " + utils.sizeof_fmt(self._start_size) + " bytes (" +
+                              utils.sizeof_fmt(fs) + ")")
+                    continue
+
             picture_date = utils.get_picture_date(src_file)
             if picture_date is None:
-                self._log("SKIPING: '" + src_file + "' No se pudo determinar la fecha.")
+                self._log("SKIPING: '" + src_file + "' Couldn't determine file date")
                 continue
 
             dest_folder_name = self._get_dest_folder_name(picture_date)
@@ -188,10 +196,13 @@ class PictureArchiver:
         self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
 
     @classmethod
-    def do(cls, src_path, dest_path, diagnostics, move):
+    def do(cls, src_path, dest_path, diagnostics, move, start_size):
         obj = cls(src_path, dest_path)
         obj._diagnostics = diagnostics
         obj._move_files = move
+        obj._start_size = int(start_size) * 1024 * 1024
+        print obj._start_size
+
         if obj._diagnostics:
             obj._log("WARING: Diagnostics mode activated.")
         obj.archive_pictures()
