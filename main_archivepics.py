@@ -29,7 +29,7 @@ if __name__ == "__main__":
     src_folders = None
 
     if options.source is not None:
-        src_folders = [options.source]
+        src_folders = [unicode(options.source, "UTF-8")]
     else:
         try:
             config = json.load(open(os.path.expanduser(options.config)))
@@ -42,7 +42,7 @@ if __name__ == "__main__":
             exit()
 
     if options.destination is not None:
-        dest_folder = options.destination
+        dest_folder = unicode(options.destination, "UTF-8")
     else:
         dest_folder = utils.find_backup_folder(utils.primary_backup_marker)
         if dest_folder is None:

@@ -39,6 +39,7 @@ def main():
 
     tagged_count, already_tagged_count, error_count = (0, 0, 0)
     if options.folder is not None:
+        options.folder = unicode(options.folder, "UTF-8")
         if os.path.isfile(options.folder):
             result = tagger.geotag_picture(options.folder)
             if result == picgeotager.GeotagStatus.tagged:
