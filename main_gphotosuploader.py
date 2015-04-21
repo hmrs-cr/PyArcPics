@@ -18,8 +18,10 @@ def main():
 
     parser = argparse.ArgumentParser(description='Upload to Google+ all JPEG pictures in the given folder recursively')
     parser.add_argument('folder', help='The folder to search for pictures')
+    parser.add_argument('-u', dest="user_name", help='Google user name', default="")
     parser.add_argument('-s', dest='scan_only', action="store_true", help="Scan folder but don't upload pictures")
     parser.add_argument('-r', dest="small_size", action="store_true", help='Reduce image size before upload.')
+    parser.add_argument('-a', dest='auth_only', action="store_true", help="Authenticate to Google service")
 
     options = parser.parse_args()
 
@@ -39,14 +41,21 @@ def main():
         sys.stderr.write("Please add Google API access keys to config file: " + config_file_name + "\n")
         exit()
 
-    gup = GoogleUploader(api_key, api_secret)
+    gup = GoogleUploader(api_key, api_secret, options.user_name)
+
+    if options.auth_only:
+        if gup.authenticate():
+            print "User " + str(gup.user_name) + " authenticated successfully"
+        else:
+            print "Authentication failed."
+        exit()
 
     print "Authenticating..."
     if not gup.authenticate():
         sys.stderr.write("Google authentication error\n")
         exit()
 
-    print "Starting upload"
+    print "Starting upload as user " + str(gup.user_name)
     options.folder = unicode(options.folder, "UTF-8")
     gup.original_size = not options.small_size
 

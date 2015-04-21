@@ -59,6 +59,7 @@ class PictureUploader:
         self._failcount = 0
         self._starttime = 0
         self._allowed_file_exts = [".jpg", ".jpeg", ".png"]
+        self.user_name = None
 
     def is_valid_file_type(self, file_name):
         fname, fext = os.path.splitext(file_name)

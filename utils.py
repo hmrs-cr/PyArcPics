@@ -1,3 +1,5 @@
+import base64
+import getpass
 import hashlib
 import json
 import os
@@ -210,6 +212,34 @@ def find_backup_folder(folder):
     return None
 
 
+def csl2dict(csl):
+    return dict(item.split("=") for item in csl.split(";"))
+
+
+def dict2csl(_dict):
+    return ";".join(["=".join([key, str(val)]) for key, val in _dict.items()])
+
+
+def vigenere_encode(key, string):
+    encoded_chars = []
+    for i in xrange(len(string)):
+        key_c = key[i % len(key)]
+        encoded_c = chr(ord(string[i]) + ord(key_c) % 256)
+        encoded_chars.append(encoded_c)
+    encoded_string = "".join(encoded_chars)
+    return base64.urlsafe_b64encode(encoded_string)
+
+
+def vigenere_decode(key, string):
+    decoded_chars = []
+    string = base64.urlsafe_b64decode(string)
+    for i in xrange(len(string)):
+        key_c = key[i % len(key)]
+        encoded_c = chr(abs(ord(string[i]) - ord(key_c) % 256))
+        decoded_chars.append(encoded_c)
+    decoded_string = "".join(decoded_chars)
+    return decoded_string
+
 MIME_TYPES = {
     "bmp": "image/bmp",
     "gif": "image/gif",
@@ -239,4 +269,5 @@ def file_name_to_mimetype(file_name):
         return None
 
 
-
+def get_cipher_key(base):
+    return base + "-" + str(os.getegid()) + "-" + getpass.getuser()

@@ -6,28 +6,29 @@ import os
 import Image
 import time
 import webbrowser
+import sys
 
 import gdata.gauth
 import gdata.photos.service
 import gdata.media
 import gdata.geo
-import sys
 
 from picasaclient import PicasaClient
 from pictureuploader import PictureUploader, FileWithCallback
-
 import utils
 
 
 SCOPES = "https://picasaweb.google.com/data/"
 USER_AGENT = "personal-photo/video-uploader"
 TOKEN_KEY = "gphotos-token"
+NICKNAME_KEY = "nickname"
+ALBUM_KEY = "albumid"
 
 MAX_VIDEO_SIZE = 104857600
 
 
 class GoogleUploader(PictureUploader):
-    def __init__(self, client_id, client_secret):
+    def __init__(self, client_id, client_secret, user=None):
         PictureUploader.__init__(self)
         self._client_id = client_id
         self._client_secret = client_secret
@@ -35,16 +36,32 @@ class GoogleUploader(PictureUploader):
         self._autobackup_album = None
         self._set_service_name("gphotos")
         self.original_size = False
+        self._user_name = user or ""
         self._allowed_file_exts += [".mov", ".mp4", ".avi", ".mpg", ".mpeg", ".3gp", ".3gpp"]
+        self._user_data = None
+        self._token_key = TOKEN_KEY
+        if user:
+            self._token_key += "-" + user
+
+    def get_user_feed_data(self):
+        if self._user_data is None:
+            albumid = "default"
+            feed = self._gd_client.GetUserFeed()
+            user_name = feed.nickname.text
+            for album in feed.entry:
+                if album.name.text == "InstantUpload":
+                    albumid = album.gphoto_id.text
+                    break
+
+            self._user_data = {NICKNAME_KEY: user_name, ALBUM_KEY: albumid}
+
+        self.user_name = self._user_data[NICKNAME_KEY]
+        return self._user_data
 
     def get_autobackup_album_url(self):
         if self._autobackup_album is None:
-            self._autobackup_album = "/data/feed/api/user/default/albumid/default"
-            albums = self._gd_client.GetUserFeed()
-            for album in albums.entry:
-                if album.name.text == "InstantUpload":
-                    self._autobackup_album = "/data/feed/api/user/default/albumid/" + album.gphoto_id.text
-                    break
+            data = self.get_user_feed_data()
+            self._autobackup_album = "/data/feed/api/user/default/albumid/" + data[ALBUM_KEY]
 
         return self._autobackup_album
 
@@ -121,17 +138,29 @@ class GoogleUploader(PictureUploader):
         return photo_id
 
     def _load_token(self):
-        tokenb = self._dataHelper.get_setting(TOKEN_KEY)
-        if tokenb is not None:
-            return gdata.gauth.token_from_blob(tokenb)
+        try:
+            token_data = self._dataHelper.get_secure_data(self._token_key)
+            if token_data is not None:
+                self._user_data = token_data
+                return gdata.gauth.token_from_blob(token_data[TOKEN_KEY])
+        except :
+            pass
+
         return None
 
     def _save_token(self, token):
         if token is None:
-            self._dataHelper.set_setting(TOKEN_KEY, None)
+            self._dataHelper.save_secure_data(self._token_key, None)
         else:
             tokenb = gdata.gauth.token_to_blob(token)
-            self._dataHelper.set_setting(TOKEN_KEY, tokenb)
+            user_feed = self.get_user_feed_data()
+            user_feed[TOKEN_KEY] = tokenb
+            self._dataHelper.save_secure_data(self._token_key, user_feed)
+
+    def refresh_token(self, token):
+        # Hack to fix possible bug in Google SDK (I have no idea what I'm doing)
+        token._refresh(self._gd_client.http_client.request)
+        self._save_token(token)
 
     def authenticate(self):
         try:
@@ -142,16 +171,20 @@ class GoogleUploader(PictureUploader):
                     user_agent=USER_AGENT)
 
                 authorize_url = token.generate_authorize_url()
+                print "Authorize URL:", authorize_url
                 webbrowser.open_new_tab(authorize_url)
                 token.get_access_token(unicode(raw_input('Verifier code: ')))
+                token.authorize(self._gd_client)
                 self._save_token(token)
+                return True
 
-            # Hack to fix possible bug in Google SDK (I have no idea what I'm doing)
-            token._refresh(self._gd_client.http_client.request)
+            self.refresh_token(token)
+            if token.invalid:
+                self._save_token(None)
+            else:
+                token.authorize(self._gd_client)
+                return True
 
-            token.authorize(self._gd_client)
-
-            return True
         except gdata.gauth.OAuth2AccessTokenError as e:
             self._save_token(None)
             sys.stderr.write(str(e) + "\n")

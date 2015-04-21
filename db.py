@@ -1,8 +1,10 @@
 import os
 import sqlite3
 import datetime
+import utils
 
 last_location_time_key = "last_location_time"
+CIPHER_KEY = "buJ&zb2u"
 
 
 class BuffData:
@@ -21,6 +23,8 @@ class BuffData:
             "CREATE TABLE IF NOT EXISTS location (timestamp INTEGER PRIMARY KEY, latitude REAL, longitude REAL, "
             "altitude REAL, address TEXT )")
         self._connection.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
+        self.CIPHER_KEY = utils.get_cipher_key(CIPHER_KEY)
+
 
     def set_setting(self, key, value):
         with self._connection:
@@ -29,6 +33,22 @@ class BuffData:
             else:
                 self._connection.execute("INSERT OR REPLACE INTO settings (key, value) VALUES(?, ?)",
                                          (key, value))
+
+    def save_secure_data(self, key, data):
+        value = None
+        if data is not None:
+            if isinstance(data, dict):
+                value = utils.vigenere_encode(self.CIPHER_KEY, utils.dict2csl(data))
+
+        self.set_setting(key, value)
+
+    def get_secure_data(self, key):
+        value = self.get_setting(key)
+        if value is not None:
+            data = utils.csl2dict(utils.vigenere_decode(self.CIPHER_KEY, str(value)))
+            return data
+
+        return None
 
     def get_setting(self, key):
         self._cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
@@ -100,7 +120,7 @@ class BuffData:
         result = self._cursor.fetchall()
         if len(result) == 1:
             pid, udate = result[0]
-            return dict(item.split("=") for item in pid.split(";")), dict(item.split("=") for item in udate.split(";"))
+            return utils.csl2dict(pid), utils.csl2dict(udate)
         return None, None
 
     def file_already_uploaded(self, service_name, md5sum):
@@ -123,8 +143,8 @@ class BuffData:
         if d is not None:
             d[service_name] = photo_id
             u[service_name] = date
-            ids = ";".join(["=".join([key, str(val)]) for key, val in d.items()])
-            dates = ";".join(["=".join([key, str(val)]) for key, val in u.items()])
+            ids = utils.dict2csl(d)
+            dates = utils.dict2csl(u)
             with self._connection:
                 self._connection.execute(
                     "UPDATE uploaded SET photo_id = ?, upload_date = ? WHERE md5sum = ?",
