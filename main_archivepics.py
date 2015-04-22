@@ -59,9 +59,9 @@ if __name__ == "__main__":
         for exp_path in expanded_paths:
             if os.path.isdir(exp_path):
                 if not os.path.isfile(os.path.join(exp_path, ".no_backup")):
-                    print "Importando desde ", exp_path
+                    print "Starting import from ", exp_path
                     if not options.scan_only:
                         PictureArchiver.do(exp_path, dest_folder, options.diagnostics, options.move, options.start_size)
             else:
-                print path, " no encontrado"
+                print path, " not found."
 
