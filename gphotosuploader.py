@@ -165,25 +165,23 @@ class GoogleUploader(PictureUploader):
     def authenticate(self):
         try:
             token = self._load_token()
-            if token is None:
-                token = gdata.gauth.OAuth2Token(
+            if token is not None:                
+                self.refresh_token(token)
+                if not token.invalid:                    
+                    token.authorize(self._gd_client)
+                    return True
+                
+            token = gdata.gauth.OAuth2Token(
                     client_id=self._client_id, client_secret=self._client_secret, scope=SCOPES,
                     user_agent=USER_AGENT)
 
-                authorize_url = token.generate_authorize_url()
-                print "Authorize URL:", authorize_url
-                webbrowser.open_new_tab(authorize_url)
-                token.get_access_token(unicode(raw_input('Verifier code: ')))
-                token.authorize(self._gd_client)
-                self._save_token(token)
-                return True
-
-            self.refresh_token(token)
-            if token.invalid:
-                self._save_token(None)
-            else:
-                token.authorize(self._gd_client)
-                return True
+            authorize_url = token.generate_authorize_url()
+            print "Authorize URL:", authorize_url
+            webbrowser.open_new_tab(authorize_url)
+            token.get_access_token(unicode(raw_input('Verifier code: ')))
+            token.authorize(self._gd_client)
+            self._save_token(token)
+            return True
 
         except gdata.gauth.OAuth2AccessTokenError as e:
             self._save_token(None)
