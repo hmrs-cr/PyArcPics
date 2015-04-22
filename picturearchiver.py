@@ -9,24 +9,23 @@ import utils
 
 # noinspection PyBroadException
 class PictureArchiver:
-    _move_files = False
-    _diagnostics = False
-
     _verbose = True
     _debug = False
-
-    _imgCount = 0
-    _currImgIndex = 0
-    _success_count = 0
-    _currImgFileName = None
-    _correct_dates_only = False
-    _start_size = 0
-
-    onAdvance = None
 
     def __init__(self, src_path, dest_path):
         self._srcPath = src_path
         self._destPath = dest_path
+        self._move_files = False
+        self._diagnostics = False
+        self._imgCount = 0
+        self._currImgIndex = 0
+        self._success_count = 0
+        self._currImgFileName = None
+        self._correct_dates_only = False
+        self._start_size = 0
+
+        self.onAdvance = None
+
 
     def _do_advance(self):
         try:
