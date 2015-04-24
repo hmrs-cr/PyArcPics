@@ -196,6 +196,19 @@ def get_drive_list():
         return None
 
 
+def find_camera_folders(folder="DCIM"):
+    drives = get_drive_list()
+    result = []
+    for drive in drives:
+        if drive == "/" or drive == "/home":
+            continue
+        camera_folder = os.path.join(drive, folder)
+        if os.path.isdir(camera_folder):
+            result.append(camera_folder)
+    
+    return result
+
+
 def find_backup_folder(folder):
     drives = get_drive_list()
     import glob

@@ -8,14 +8,14 @@ import sys
 from picturearchiver import PictureArchiver
 import utils
 
-
+DEFAUL_CONFIG = "~/.hmsoft/arcpics.json"
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Backup pictures from source to destination, sorting them in a folder '
                                                  'structure by date and keeping date time accurate')
     parser.add_argument('source', help='The source folder.', nargs='?', default=None)
     parser.add_argument('destination', help='The destination folder.', nargs='?', default=None)
-    parser.add_argument('-c', dest="config", help='The config file', default="~/.hmsoft/arcpics.json")
+    parser.add_argument('-c', dest="config", help='The config file', default=None)
     parser.add_argument('-z', dest="start_size", help='Take in account only files bigger than START_SIZE megabytes', default="0")
     parser.add_argument('-m', dest='move', action="store_true", help="Move files instead of copy them.")
     parser.add_argument('-d', dest='diagnostics', action="store_true", help="Don't run the actual actions.")
@@ -29,17 +29,19 @@ if __name__ == "__main__":
     src_folders = None
 
     if options.source is not None:
-        src_folders = [unicode(options.source, "UTF-8")]
+        if options.source != "ALL":
+            src_folders = [unicode(options.source, "UTF-8")]
     else:
         try:
+            if not options.config:
+                options.config = DEFAUL_CONFIG
             config = json.load(open(os.path.expanduser(options.config)))
             src_folders = config["source_folders"]
         except:
             pass
 
-        if config is None:
-            sys.stderr.write("Can't open config file: " + options.config + "\n")
-            exit()
+    if src_folders is None:
+        src_folders = utils.find_camera_folders()
 
     if options.destination is not None:
         dest_folder = unicode(options.destination, "UTF-8")
@@ -55,7 +57,10 @@ if __name__ == "__main__":
 
     for path in src_folders:
         import glob
-        expanded_paths = glob.glob(path)
+        try:
+            expanded_paths = glob.glob(path)
+        except UnicodeEncodeError as e:
+            continue
         for exp_path in expanded_paths:
             if os.path.isdir(exp_path):
                 if not os.path.isfile(os.path.join(exp_path, ".no_backup")):
