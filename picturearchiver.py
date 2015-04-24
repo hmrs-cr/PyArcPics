@@ -151,8 +151,6 @@ class PictureArchiver:
 
                 if os.path.isfile(dest_file):
                     self._log("SKIPING: '" + dest_file + "' already exists.")
-                    if not self._diagnostics:
-                        self._correct_picture_date(dest_file, picture_date)
                     continue
 
                 if not os.path.isdir(dest_folder):
