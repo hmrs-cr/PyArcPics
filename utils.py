@@ -160,7 +160,10 @@ def get_date_from_file_date(filename):
 
 
 def get_picture_date(picture_path):
-    obj_date = date_from_exif_data(picture_path)
+    obj_date = None
+    if is_picture(picture_path):
+        obj_date = date_from_exif_data(picture_path)
+
     if obj_date is None:
         obj_date = get_date_from_filename(picture_path)
         if obj_date is None:

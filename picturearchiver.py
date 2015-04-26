@@ -26,7 +26,6 @@ class PictureArchiver:
 
         self.onAdvance = None
 
-
     def _do_advance(self):
         try:
             if self.onAdvance is not None:
@@ -46,6 +45,8 @@ class PictureArchiver:
         print "ERROR:", msg
 
     def _correct_exif_date(self, filename, date):
+        if not utils.is_picture(filename):
+            return
         try:
             exif_data = pyexiv2.ImageMetadata(filename)
             need_write = False
@@ -149,9 +150,12 @@ class PictureArchiver:
                     self._log("SKIPING: '" + dest_file + "' Source and destination are the same.")
                     continue
 
+                src_size = os.path.getsize(src_file)
                 if os.path.isfile(dest_file):
-                    self._log("SKIPING: '" + dest_file + "' already exists.")
-                    continue
+                    dest_size = os.path.getsize(dest_file)
+                    if dest_size >= src_size:
+                        self._log("SKIPING: '" + dest_file + "' already exists.")
+                        continue
 
                 if not os.path.isdir(dest_folder):
                     self._log("CREATING: Folder '" + dest_folder + "'")
@@ -176,10 +180,13 @@ class PictureArchiver:
                     if not self._diagnostics:
                         shutil.copy(src_file, dest_folder)
 
-                if not self._diagnostics:
-                    self._correct_picture_date(dest_file, picture_date)
+                success = (not move or not os.path.isfile(src_file)) and os.path.isfile(dest_file) and src_size == os.path.getsize(dest_file)
+                if success:
+                    if not self._diagnostics:
+                        self._correct_picture_date(dest_file, picture_date)
 
-                self._success_count += 1
+                    self._success_count += 1
+
             except Exception as exp:
                 self._error(exp)
                 continue
