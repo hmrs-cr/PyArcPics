@@ -1,3 +1,3 @@
-ACTION=="add", SUBSYSTEM=="block", ATTR{partition}=="1", ATTRS{type}=="SD",  RUN+="/home/hm/autobackupsd"
+ACTION=="add", SUBSYSTEM=="block", ATTR{partition}=="1", ATTRS{type}=="SD",  RUN+="/usr/local/bin/autobackupsd"
 
-ACTION=="remove", SUBSYSTEM=="block", RUN+="/home/hm/stopled"
+ACTION=="remove", SUBSYSTEM=="block", RUN+="/usr/local/bin/stopled"
