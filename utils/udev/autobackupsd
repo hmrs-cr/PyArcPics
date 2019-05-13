@@ -1,0 +1,108 @@
+#!/bin/bash
+
+# Settings
+DEFAULT_MOUNT_POINT='/media/autobackupsd'
+BACKUP_FOLDER='/media/hm/MainStorage/Fotos'
+LOG_FOLDER='/var/log/autobackupsd'
+
+error () {
+  echo 'ring,90,blink_fast,red' |  tee /proc/acpi/nuc_led > /dev/null
+}
+
+check_exit_code() {
+  if [ "$?" != "0" ]
+  then
+     echo "Error $1"
+     error
+     exit $?
+  fi
+}
+  
+if [[ ! $- == *i* ]]
+then
+  [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
+  LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
+  echo "Using log file '$LOG_FILE'"
+  exec >> $LOG_FILE
+  exec 2>&1
+fi
+
+
+# Must be a block device
+if [ ! -b "$DEVNAME" ]
+then
+  echo "Device '$DEVICENAME' is not a block device"
+  error
+  exit 1
+fi
+
+# Must be 1
+if [ "$ID_DRIVE_FLASH_SD" != "1" ]
+then
+  echo "Device is not a SD Card"
+  error
+  exit 1
+fi
+
+# Must be partition
+if [ "$DEVTYPE" != "partition" ]
+then
+  echo "Device is not a partition: $DEVTYPE."
+  error
+  exit 1
+fi
+
+if [ ! -d "$BACKUP_FOLDER" ]
+then
+  echo "Backup folder does not exists: $BACKUP_FOLDER"
+  error
+  exit 1
+fi
+
+MOUNT_POINT=$(lsblk -o MOUNTPOINT -nr "$DEVNAME" | xargs)
+
+ALREADY_MOUNTED=true
+if [ -z "$MOUNT_POINT" ]
+then
+  echo "$DEVNAME not yet mounted. Mounting..."
+  # Create dir if not exists
+  MOUNT_POINT="$DEFAULT_MOUNT_POINT"
+  if [ ! -d "$MOUNT_POINT" ]
+  then
+    mkdir "$MOUNT_POINT"
+  fi
+  # Mount device
+  mount "$DEVNAME" "$MOUNT_POINT"
+  check_exit_code "Mounting $DEVNAME"
+  ALREADY_MOUNTED=false
+fi
+
+if [ ! -d "$MOUNT_POINT/DCIM" ]
+then
+  echo "SD Card does not contains a picture folder: $MOUNT_POINT/DCIM"
+  error
+  exit 1
+fi
+
+echo "Starting backup from $MOUNT_POINT/DCIM to $BACKUP_FOLDER"
+
+echo 'ring,70,fade_medium,green' |  tee /proc/acpi/nuc_led > /dev/null
+
+/home/hm/arcpics "$MOUNT_POINT/DCIM" "$BACKUP_FOLDER"
+check_exit_code "Backup script problem"
+
+
+echo 'ring,70,fade_fast,green' |  tee /proc/acpi/nuc_led > /dev/null
+
+if [ "$ALREADY_MOUNTED" == false ] 
+then
+  echo "Unmounting $DEVNAME"
+  umount "$DEVNAME"
+fi
+
+YEAR=$(date +"%Y")
+echo "Changing permissions: $BACKUP_FOLDER/$YEAR  ..."
+chown -R www-data:www-data "$BACKUP_FOLDER/$YEAR"
+
+echo "Done!"
+echo 'ring,100,none,green' |  tee /proc/acpi/nuc_led > /dev/null
