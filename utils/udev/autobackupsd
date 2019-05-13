@@ -6,6 +6,10 @@ BACKUP_FOLDER='/media/hm/MainStorage/Fotos'
 LOG_FOLDER='/var/log/autobackupsd'
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 
+
+# Cancel any pending shutdown
+shutdown -c
+
 led() {
   echo "ring,$1,$2,$3" |  tee /proc/acpi/nuc_led > /dev/null
 }

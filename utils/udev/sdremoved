@@ -4,5 +4,5 @@ if [ -z "$(who)" ]
 then
    shutdown -P
 fi
-
+   
 echo  'ring,0,blink_fast,red' |  tee /proc/acpi/nuc_led > /dev/null
