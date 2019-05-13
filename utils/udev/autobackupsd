@@ -4,6 +4,7 @@
 DEFAULT_MOUNT_POINT='/media/autobackupsd'
 BACKUP_FOLDER='/media/hm/MainStorage/Fotos'
 LOG_FOLDER='/var/log/autobackupsd'
+BACKUP_COMMAND='/usr/local/bin/arcpics'
 
 error () {
   echo 'ring,90,blink_fast,red' |  tee /proc/acpi/nuc_led > /dev/null
@@ -88,7 +89,7 @@ echo "Starting backup from $MOUNT_POINT/DCIM to $BACKUP_FOLDER"
 
 echo 'ring,70,fade_medium,green' |  tee /proc/acpi/nuc_led > /dev/null
 
-/home/hm/arcpics "$MOUNT_POINT/DCIM" "$BACKUP_FOLDER"
+$BACKUP_COMMAND "$MOUNT_POINT/DCIM" "$BACKUP_FOLDER"
 check_exit_code "Backup script problem"
 
 
