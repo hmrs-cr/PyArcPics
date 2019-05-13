@@ -1,2 +1,0 @@
-@reboot   root    modprobe nuc_led
-@reboot   root    udevadm control --reload
