@@ -36,19 +36,17 @@ then
   exec 2>&1
 fi
 
+# Must be 1
+if [ "$ID_DRIVE_FLASH_SD" != "1" ]
+then
+  echo "Device is not a SD Card: $DEVNAME ."
+  exit 1 # Exit silently.
+fi
 
 # Must be a block device
 if [ ! -b "$DEVNAME" ]
 then
   echo "Device '$DEVICENAME' is not a block device"
-  error
-  exit 1
-fi
-
-# Must be 1
-if [ "$ID_DRIVE_FLASH_SD" != "1" ]
-then
-  echo "Device is not a SD Card"
   error
   exit 1
 fi
@@ -90,8 +88,7 @@ fi
 
 if [ ! -d "$MOUNT_POINT/DCIM" ]
 then
-  echo "SD Card does not contains a picture folder: $MOUNT_POINT/DCIM"
-  error
+  echo "SD Card does not contains a picture folder: $MOUNT_POINT/DCIM"  
   exit 1
 fi
 
