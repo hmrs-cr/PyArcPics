@@ -7,7 +7,7 @@ LOG_FOLDER='/var/log/autobackupsd'
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 
 led() {
-  echo 'ring,$1,$2,$3' |  tee /proc/acpi/nuc_led > /dev/null
+  echo "ring,$1,$2,$3" |  tee /proc/acpi/nuc_led > /dev/null
 }
 
 error () {
