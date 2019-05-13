@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Must be 1
+if [ "$ID_DRIVE_FLASH_SD" != "1" ]
+then
+  echo "Device is not a SD Card."
+  exit 1 # Exit silently.
+fi
+
 if [ -z "$(who)" ]
 then
    shutdown -P
