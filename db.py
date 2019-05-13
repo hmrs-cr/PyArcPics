@@ -25,7 +25,6 @@ class BuffData:
         self._connection.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
         self.CIPHER_KEY = utils.get_cipher_key(CIPHER_KEY)
 
-
     def set_setting(self, key, value):
         with self._connection:
             if value is None:
@@ -115,13 +114,30 @@ class BuffData:
                 "INSERT OR IGNORE INTO location (timestamp, latitude, longitude, altitude)VALUES(?, ?, ?, ?) ",
                 location)
 
-    def _get_file_already_uploaded_dict(self, md5sum):
-        self._cursor.execute("SELECT photo_id, upload_date FROM uploaded WHERE md5sum = ? AND photo_id IS NOT NULL", (md5sum, ))
+    def _get_file_already_uploaded_dict(self, md5sum=None, file_name=None):
+
+        if md5sum is None and file_name is None:
+            return None, None
+        elif md5sum is not None:
+            self._cursor.execute("SELECT photo_id, upload_date FROM uploaded WHERE md5sum = ? AND photo_id IS NOT NULL", (md5sum, ))
+        elif file_name is not None:
+            self._cursor.execute("SELECT photo_id, upload_date FROM uploaded WHERE file_name like ? AND photo_id IS NOT NULL", ("%" + file_name, ))
+
         result = self._cursor.fetchall()
         if len(result) == 1:
             pid, udate = result[0]
             return utils.csl2dict(pid), utils.csl2dict(udate)
         return None, None
+
+    def get_photo_id_from_file_name(self, file_name, service_name):
+        d, u = self._get_file_already_uploaded_dict(file_name=file_name)
+        if d is not None:
+            try:
+                return d[service_name]
+            except KeyError:
+                return 0
+
+        return 0
 
     def file_already_uploaded(self, service_name, md5sum):
         if service_name is None:
@@ -140,17 +156,20 @@ class BuffData:
             raise ValueError("service_name is not set")
         d, u = self._get_file_already_uploaded_dict(md5sum)
         date = datetime.datetime.now().isoformat()
-        if d is not None:
-            d[service_name] = photo_id
-            u[service_name] = date
-            ids = utils.dict2csl(d)
-            dates = utils.dict2csl(u)
-            with self._connection:
-                self._connection.execute(
-                    "UPDATE uploaded SET photo_id = ?, upload_date = ? WHERE md5sum = ?",
-                    (ids, dates, md5sum))
-        else:
-            with self._connection:
-                self._connection.execute(
-                    "INSERT OR IGNORE INTO uploaded (file_name, photo_id, md5sum, upload_date)VALUES(?, ?, ?, ?) ",
-                    (file_name, service_name + "=" + photo_id, md5sum, service_name + "=" + date,))
+        try:
+            if d is not None:
+                d[service_name] = photo_id
+                u[service_name] = date
+                ids = utils.dict2csl(d)
+                dates = utils.dict2csl(u)
+                with self._connection:
+                    self._connection.execute(
+                        "UPDATE uploaded SET photo_id = ?, upload_date = ? WHERE md5sum = ?",
+                        (ids, dates, md5sum))
+            else:
+                with self._connection:
+                    self._connection.execute(
+                        "INSERT OR IGNORE INTO uploaded (file_name, photo_id, md5sum, upload_date)VALUES(?, ?, ?, ?) ",
+                        (file_name, service_name + "=" + photo_id, md5sum, service_name + "=" + date,))
+        except Exception, e:
+            print "Error:", e

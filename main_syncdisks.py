@@ -7,9 +7,16 @@ import subprocess
 import utils
 
 rsync = "rsync"
-rsync_options = "-vrtui --stats --del"
-rsync_exclude = "--exclude=%(primary)s --exclude=%(secondary)s" % \
+rsync_options = "-vrtui --stats"
+rsync_exclude = "--exclude=%(primary)s --exclude=%(secondary)s --exclude=.thumbs" % \
                 {"primary": utils.primary_backup_marker, "secondary": utils.secondary_backup_marker}
+
+
+
+
+
+def test_storage_available_space(source, destination):
+	subprocess.check_output([rsync, "-anrtu", "--stats", source, destination], shell=True)
 
 
 def main():
@@ -40,12 +47,21 @@ def main():
         print options.destination, " is not the secondary backup folder."
         exit()
 
+    print "Storage location:"
+    print "    Primary:  ", options.source
+    print "    Secondary:", options.destination
+
+    source=os.path.join(options.source, "")
+    destination=os.path.join(options.destination, "")
+
+    #test_storage_available_space(source, destination)
+
     rsync_cmd = "%(rsync_cmd)s %(rsync_opts)s %(exclude)s %(src)s %(dest)s" % \
                 {"rsync_cmd": rsync,
                  "rsync_opts": rsync_options,
                  "exclude": rsync_exclude,
-                 "src": os.path.join(options.source, ""),
-                 "dest": os.path.join(options.destination, "")}
+                 "src": source,
+                 "dest": destination}
 
     subprocess.call(rsync_cmd, shell=True)
 

@@ -46,6 +46,15 @@ class FileWithCallback(object):
         return r
 
 
+class UploadFileEntry(object):
+    def __init__(self, filename, filesize):
+        self.filename = filename
+        self.fileSize = filesize
+        self.uploaded = None
+        self.md5sum = None
+        self.errorMessage = ""
+
+
 class PictureUploader:
     def __init__(self):
         self._cloud_service_name = None
@@ -60,6 +69,9 @@ class PictureUploader:
         self._starttime = 0
         self._allowed_file_exts = [".jpg", ".jpeg", ".png"]
         self.user_name = None
+        self._uploadFileList = []
+
+        self._retry_count = 3
 
     def is_valid_file_type(self, file_name):
         fname, fext = os.path.splitext(file_name)
@@ -90,7 +102,9 @@ class PictureUploader:
                 self._nonpiccount += 1
                 continue
 
-            self._total_pics_size += utils.get_file_size(src_file)
+            size = utils.get_file_size(src_file)
+            self._uploadFileList.append(UploadFileEntry(src_file, size))
+            self._total_pics_size += size
             self._total_pics_count += 1
 
     def scan_directory(self, dir_name):
@@ -158,6 +172,70 @@ class PictureUploader:
     def upload_directory(self, dir_name):
         self._starttime = time.time()
         self._internal_upload_directory(dir_name)
+        return time.time() - self._starttime
+
+    def calculate_scanned_list_checksums(self):
+        count = 0
+        total = len(self._uploadFileList)
+        for fileEntry in self._uploadFileList:
+            fileEntry.md5sum = utils.get_md5sum_from_file(fileEntry.filename)
+            fileEntry.uploaded = self._dataHelper.file_already_uploaded(self._cloud_service_name, fileEntry.md5sum)
+            count += 1
+            print "Calculating checksums: ", str(int(float(count) / float(total) * 100.0)) + "%\r",
+            sys.stdout.flush()
+
+        print "Calculating checksums: Done.", total, "files scanned."
+
+    def upload_scanned_list(self):
+        if len(self._uploadFileList) == 0:
+            print "No files to upload. Scan first."
+            return
+
+        failcount = 0
+        count = 0
+        uploadedSize = 0
+        self._starttime = time.time()
+        notUploadedList = [e for e in self._uploadFileList if not e.uploaded]
+
+        totalFileSize = sum([e.fileSize for e in notUploadedList])
+        totalFiles2Upload = len(notUploadedList)
+
+        print "Starting to upload", totalFiles2Upload, "files (", utils.sizeof_fmt(totalFileSize), ") - ETA:", utils.format_eta(87603, 0, totalFileSize)
+        for fileEntry in notUploadedList:
+            file_size = fileEntry.fileSize
+            src_file = fileEntry.filename
+
+            if fileEntry.md5sum is None:
+                fileEntry.md5sum = utils.get_md5sum_from_file(src_file)
+
+            stt = time.time()
+            photo_id = self.upload_file(src_file, fileEntry.md5sum)
+            secondstoupload = time.time() - stt
+            bits_per_second = file_size / secondstoupload
+
+            if photo_id != 0:
+                self._dataHelper.set_file_uploaded(src_file, self._cloud_service_name, photo_id, fileEntry.md5sum)
+                fileEntry.uploaded = True
+                uploadedSize += file_size
+                count += 1
+            else:
+                failcount += 1
+
+            if totalFiles2Upload > 0:
+                p = float(count) / float(totalFiles2Upload) * 100.0
+                print str(int(p)) + "% done. (" + str(count), "of", totalFiles2Upload, \
+                    "pictures,", failcount, "fails - " + utils.sizeof_fmt(uploadedSize) + \
+                                                  " of " + utils.sizeof_fmt(totalFileSize) + ") ETA: " + \
+                                                  utils.format_eta(bits_per_second, uploadedSize,
+                                                                   totalFileSize)
+
+        if failcount > 0:
+            print "WARNING:", failcount, "files failed to upload"
+            if self._retry_count > 0:
+                print "Retrying..."
+                self.upload_scanned_list()
+                self._retry_count -= 1
+
         return time.time() - self._starttime
 
     def upload_file(self, file_name, md5sum=None):

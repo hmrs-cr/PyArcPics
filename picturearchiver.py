@@ -2,9 +2,10 @@
 
 import os
 import shutil
-import pyexiv2
+import exiftool
 import time
 import utils
+import datetime
 
 
 # noinspection PyBroadException
@@ -23,6 +24,7 @@ class PictureArchiver:
         self._currImgFileName = None
         self._correct_dates_only = False
         self._start_size = 0
+        self._move_destination = None
 
         self.onAdvance = None
 
@@ -73,7 +75,8 @@ class PictureArchiver:
         fname, fext = os.path.splitext(file_name)
         return fext.lower().lstrip(".") in utils.MIME_TYPES.keys()
 
-    def _get_dest_folder_name(self, obj_date):
+    @staticmethod
+    def get_dest_folder_name(obj_date):
         if obj_date is not None:
             year = obj_date.strftime("%Y")
             month = obj_date.strftime("%m")
@@ -89,7 +92,7 @@ class PictureArchiver:
         filetime = time.mktime(datetime.timetuple())
         os.utime(picture_path, (filetime, filetime))
 
-        self._debug("Corrected: " + picture_path)
+        #self._debug("Corrected: " + picture_path)
 
     def _walk_dir_correct_date(self, root_dir):
         dir_list = os.listdir(root_dir)
@@ -103,6 +106,22 @@ class PictureArchiver:
             if os.path.isfile(src_file):
                 picture_date = utils.get_picture_date(src_file)
                 self._correct_picture_date(src_file, picture_date)
+
+    def _move_to_move_destination(self, src_file, dest_folder_name):
+        if self._move_destination is not None:            
+            dest_folder = os.path.join(self._move_destination, dest_folder_name, utils.get_sub_folder(src_file))
+            dest_file = os.path.join(dest_folder, os.path.basename(src_file))
+            self._create_folder_if_needed(dest_folder)
+            self._log("MOVING: '" + src_file + "' to '" + dest_file + "'")
+            if not self._diagnostics:
+                shutil.move(src_file, dest_file)
+
+    def _create_folder_if_needed(self, dest_folder):
+        if not os.path.isdir(dest_folder):
+            self._log("CREATING: Folder '" + dest_folder + "'")
+            if not self._diagnostics:
+                os.makedirs(dest_folder)
+
 
     def _walk_dir(self, root_dir):
         dir_list = os.listdir(root_dir)
@@ -127,21 +146,24 @@ class PictureArchiver:
                 self._log("SKIPING: '" + src_file + "' is not a picture or video")
                 continue
 
+            src_size = os.path.getsize(src_file)
             if self._start_size > 0:
-                fs = os.path.getsize(src_file)
-                if self._start_size > fs:
+                if self._start_size > src_size:
                     self._log("SKIPING: " + src_file + " is not larger than " + utils.sizeof_fmt(self._start_size) + " bytes (" +
-                              utils.sizeof_fmt(fs) + ")")
+                              utils.sizeof_fmt(src_size) + ")")
                     continue
 
             picture_date = utils.get_picture_date(src_file)
+            if not isinstance(picture_date, datetime.datetime):
+                picture_date = datetime.datetime.now()
+
             if picture_date is None:
                 self._log("SKIPING: '" + src_file + "' Couldn't determine file date")
                 continue
 
-            dest_folder_name = self._get_dest_folder_name(picture_date)
+            dest_folder_name = self.get_dest_folder_name(picture_date)
 
-            dest_folder = os.path.join(self._destPath, dest_folder_name)
+            dest_folder = os.path.join(self._destPath, dest_folder_name, utils.get_sub_folder(src_file))
             dest_file = os.path.join(dest_folder, filename)
             move = self._move_files or src_file.startswith(u"/home/hm/Imágenes/Camara")
 
@@ -150,22 +172,20 @@ class PictureArchiver:
                     self._log("SKIPING: '" + dest_file + "' Source and destination are the same.")
                     continue
 
-                src_size = os.path.getsize(src_file)
                 if os.path.isfile(dest_file):
                     dest_size = os.path.getsize(dest_file)
                     if dest_size >= src_size:
                         self._log("SKIPING: '" + dest_file + "' already exists.")
+                        self._move_to_move_destination(src_file, dest_folder_name)
                         continue
 
-                if not os.path.isdir(dest_folder):
-                    self._log("CREATING: Folder '" + dest_folder + "'")
-                    if not self._diagnostics:
-                        os.makedirs(dest_folder)
+                self._create_folder_if_needed(dest_folder)                
 
-                if move:
-                    self._log("MOVING: '" + src_file + "' to '" + dest_file + "'")
+                if move:                    
+                    self._log("MOVING: '" + src_file + "' to '" + dest_file + "'")                    
                     if not self._diagnostics:
                         shutil.move(src_file, dest_folder)
+                        self._bytes_copied = self._bytes_copied + src_size
 
                     files_left -= 1
                     if files_left == 0:
@@ -175,15 +195,17 @@ class PictureArchiver:
                         except:
                             self._error("Error removing dir")
 
-                else:
+                else:                    
                     self._log("COPING: '" + src_file + "' to '" + dest_file + "'")
                     if not self._diagnostics:
-                        shutil.copy(src_file, dest_folder)
+                        shutil.copy(src_file, dest_folder)  
+                        self._bytes_copied = self._bytes_copied + src_size
 
-                success = (not move or not os.path.isfile(src_file)) and os.path.isfile(dest_file) and src_size == os.path.getsize(dest_file)
+                success = self._diagnostics or ((not move or not os.path.isfile(src_file)) and os.path.isfile(dest_file) and src_size == os.path.getsize(dest_file))
                 if success:
+                    self._move_to_move_destination(src_file, dest_folder_name)
                     if not self._diagnostics:
-                        self._correct_picture_date(dest_file, picture_date)
+                        self._correct_picture_date(dest_file, picture_date)                    
 
                     self._success_count += 1
 
@@ -195,16 +217,22 @@ class PictureArchiver:
         self._imgCount = 0
         self._currImgIndex = 0
         self._success_count = 0
+        self._bytes_copied = 0
+
+        start_time = time.time()
         self._walk_dir(self._srcPath)
+        totalTime = utils.format_time(time.time() - start_time)
 
         self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
+        self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
 
     @classmethod
-    def do(cls, src_path, dest_path, diagnostics, move, start_size):
+    def do(cls, src_path, dest_path, move_destination, diagnostics, move, start_size):
         obj = cls(src_path, dest_path)
         obj._diagnostics = diagnostics
         obj._move_files = move
         obj._start_size = int(start_size) * 1024 * 1024
+        obj._move_destination = move_destination
         print obj._start_size
 
         if obj._diagnostics:

@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 import time
-import pyexiv2
+import exiftool
 import re
 import datetime
 
@@ -60,12 +60,31 @@ def get_file_size(file_name):
         return 0
 
 
+def has_exif(file_name):
+    fname, fext = os.path.splitext(file_name)
+    return fext.lower() in [".jpg", ".jpeg", ".png", ".dng", ".orf", ".cr2"]
+
+
 def is_picture(file_name):
     fname, fext = os.path.splitext(file_name)
     return fext.lower() in [".jpg", ".jpeg", ".png"]
 
 
-def get_md5sum_from_file(file_name):
+def get_md5sum_from_file(input_file_name):
+    dir_name = os.path.dirname(input_file_name)
+    file_name = os.path.basename(input_file_name)
+    md5_file_name = os.path.join(dir_name, "." + file_name + ".md5")
+
+    if os.path.exists(md5_file_name):
+        file_date = get_date_from_file_date(input_file_name)
+        md5_file_date = get_date_from_file_date(md5_file_name)
+        if file_date <= md5_file_date:        
+            with open(md5_file_name, 'r') as content_file:
+                md5 = content_file.read()
+                if len(md5) == 32:
+                    return md5
+    
+    file_name = os.path.join(dir_name, file_name)
     m = hashlib.md5()
     with open(file_name, "rb") as f:
         while True:
@@ -74,7 +93,12 @@ def get_md5sum_from_file(file_name):
                 break
             m.update(buf)
 
-    return m.hexdigest()
+    md5 = m.hexdigest()
+
+    with open(md5_file_name, "w") as text_file:
+        text_file.write(md5)
+
+    return md5
 
 
 def get_exif_value(exif_data, key):
@@ -86,10 +110,12 @@ def get_exif_value(exif_data, key):
 
 def read_picture_date(exif_data):
     obj_date = get_exif_value(exif_data, 'Exif.Image.DateTime')
-    if obj_date is None:
+    if obj_date is None or type(obj_date) is not datetime.datetime:
         obj_date = get_exif_value(exif_data, 'Exif.Photo.DateTimeOriginal')
-        if obj_date is None:
+        if obj_date is None or type(obj_date) is not datetime.datetime:
             obj_date = get_exif_value(exif_data, 'Exif.Photo.DateTimeDigitized')
+            if type(obj_date) is not datetime.datetime:
+                obj_date = None
 
     return obj_date
 
@@ -153,7 +179,7 @@ def get_date_from_filename(filename):
 
 
 def get_date_from_file_date(filename):
-    file_date = time.localtime(os.path.getctime(filename))
+    file_date = time.localtime(os.path.getmtime(filename))
     obj_date = datetime.datetime(file_date.tm_year, file_date.tm_mon, file_date.tm_mday,
                                  file_date.tm_hour, file_date.tm_min, file_date.tm_sec)
     return obj_date
@@ -161,11 +187,12 @@ def get_date_from_file_date(filename):
 
 def get_picture_date(picture_path):
     obj_date = None
-    if is_picture(picture_path):
+    if has_exif(picture_path):
         obj_date = date_from_exif_data(picture_path)
 
     if obj_date is None:
         obj_date = get_date_from_filename(picture_path)
+
         if obj_date is None:
             obj_date = get_date_from_file_date(picture_path)
 
@@ -257,33 +284,44 @@ def vigenere_decode(key, string):
     return decoded_string
 
 MIME_TYPES = {
-    "bmp": "image/bmp",
-    "gif": "image/gif",
-    "jpeg": "image/jpeg",
-    "thm": "image/jpeg",
-    "jpg": "image/jpeg",
-    "png": "image/png",
-    "3gpp": "video/3gpp",
-    "3gp": "video/3gpp",
-    "avi": "video/avi",
-    "mov": "video/quicktime",
-    "mp4": "video/mp4",
-    "lrv": "video/mp4",
-    "mpeg": "video/mpeg",
-    "mpg": "video/mpeg",
-    "mpeg4": "video/mpeg4",
-    "asf": "video/x-ms-asf",
-    "wmv": "video/x-ms-wmv"
+    "bmp": ["image/bmp", ""],
+    "gif": ["image/gif", ""],
+    "jpeg": ["image/jpeg", ""],
+    "thm": ["image/jpeg", ""],
+    "jpg": ["image/jpeg", ""],
+    "png": ["image/png", ""],
+    "cr2": ["image/tiff", "raw"],
+    "dng": ["image/dng", "raw"],
+    "orf": ["image/orf", "raw"],
+    "3gpp": ["video/3gpp", ""],
+    "3gp": ["video/3gpp", ""],
+    "avi": ["video/avi", ""],
+    "mov": ["video/quicktime", ""],
+    "mp4": ["video/mp4", ""],
+    "lrv": ["video/mp4", ""],
+    "mpeg": ["video/mpeg", ""],
+    "mpg": ["video/mpeg", ""],
+    "mpeg4": ["video/mpeg4", ""],
+    "asf": ["video/x-ms-asf", ""],
+    "wmv": ["video/x-ms-wmv", ""]
 }
 
 
 def file_name_to_mimetype(file_name):
     n, e = os.path.splitext(file_name)
     try:
-        return MIME_TYPES[e.lower().lstrip(".")]
+        return MIME_TYPES[e.lower().lstrip(".")][0]
     except KeyError:
         return None
 
 
 def get_cipher_key(base):
     return base + "-" + str(os.getegid()) + "-" + getpass.getuser()
+
+
+def get_sub_folder(file_name):
+    n, e = os.path.splitext(file_name)
+    try:
+        return MIME_TYPES[e.lower().lstrip(".")][1]
+    except KeyError:
+        return None

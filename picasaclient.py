@@ -28,17 +28,26 @@ class PicasaClient(gdata.client.GDClient):
         gdata.client.GDClient.__init__(self, auth_token=auth_token, **kwargs)
         self.domain = domain
 
-    def GetUserFeed(self, kind='album', user='default', **kwargs):
-        if isinstance(kind, (list, tuple)):
-            kind = ",".join(kind)
+    def GetFeed(self, uri, **kwargs):
 
         def converter(response):
             body = response.read()
             return gdata.photos.AnyFeedFromString(body)
 
-        uri = '%s://%s/data/feed/api/user/%s?kind=%s' % (self.scheme, self.server, user, kind)
+        uri = '%s://%s%s' % (self.scheme, self.server, uri)
         return self.get_feed(uri, auth_token=None,
                              converter=converter, **kwargs)
+
+    def GetPhotosInAlbum(self, album_id, user='default', **kwargs):
+        uri = '/data/feed/api/user/%s/albumid/%s?kind=photo' % (user, album_id)
+        return self.GetFeed(uri, **kwargs)
+
+    def GetUserFeed(self, kind='album', user='default', **kwargs):
+        if isinstance(kind, (list, tuple)):
+            kind = ",".join(kind)
+
+        uri = '/data/feed/api/user/%s?kind=%s' % (user, kind)
+        return self.GetFeed(uri, **kwargs)
 
     def InsertPhotoSimple(self, album_uri, title, summary, fileobj,
                           content_type='image/jpeg', keywords=None):
