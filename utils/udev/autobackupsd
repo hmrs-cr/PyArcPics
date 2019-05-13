@@ -6,8 +6,12 @@ BACKUP_FOLDER='/media/hm/MainStorage/Fotos'
 LOG_FOLDER='/var/log/autobackupsd'
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 
+led() {
+  echo 'ring,$1,$2,$3' |  tee /proc/acpi/nuc_led > /dev/null
+}
+
 error () {
-  echo 'ring,90,blink_fast,red' |  tee /proc/acpi/nuc_led > /dev/null
+  led "90" "blink_fast" "red"  
 }
 
 check_exit_code() {
@@ -87,13 +91,12 @@ fi
 
 echo "Starting backup from $MOUNT_POINT/DCIM to $BACKUP_FOLDER"
 
-echo 'ring,70,fade_medium,green' |  tee /proc/acpi/nuc_led > /dev/null
+led "70" "fade_medium" "green"
 
 $BACKUP_COMMAND "$MOUNT_POINT/DCIM" "$BACKUP_FOLDER"
 check_exit_code "Backup script problem"
 
-
-echo 'ring,70,fade_fast,green' |  tee /proc/acpi/nuc_led > /dev/null
+led "70" "fade_fast" "green"
 
 if [ "$ALREADY_MOUNTED" == false ] 
 then
@@ -106,4 +109,5 @@ echo "Changing permissions: $BACKUP_FOLDER/$YEAR  ..."
 chown -R www-data:www-data "$BACKUP_FOLDER/$YEAR"
 
 echo "Done!"
-echo 'ring,100,none,green' |  tee /proc/acpi/nuc_led > /dev/null
+led "100" "none" "green"
+
