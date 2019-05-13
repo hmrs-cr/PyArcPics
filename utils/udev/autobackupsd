@@ -80,6 +80,8 @@ then
   mount "$DEVNAME" "$MOUNT_POINT"
   check_exit_code "Mounting $DEVNAME"
   ALREADY_MOUNTED=false
+else 
+  echo "$DEVNAME mounted in $MOUNT_POINT"
 fi
 
 if [ ! -d "$MOUNT_POINT/DCIM" ]
