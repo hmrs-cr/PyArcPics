@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ ! -f ./autobackupsd ]
+then
+    echo "Wrong directory."
+    exit
+fi
+
+ln -s /usr/local/bin/arcpics  "$(readlink -f ../../main_archivepics.py)"
+ln -s /usr/local/bin/autobackupsd "$(readlink -f ./autobackupsd)"
+ln -s /usr/local/bin/sdremoved "$(readlink -f ./sdremoved)"
+
+cp ./99-autobackupsd.rules /etc/udev/rules.d/99-autobackupsd.rules
+udevadm control --reload
