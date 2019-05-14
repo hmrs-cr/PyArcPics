@@ -7,12 +7,18 @@ import time
 import exiftool
 import re
 import datetime
+import pwd
+import grp
 
 
 primary_backup_marker = "destination_folder"
 secondary_backup_marker = "secondary_backup"
 
-
+def change_owner(path, owner, group):
+    uid = pwd.getpwnam(owner).pw_uid
+    gid = grp.getgrnam(group).gr_gid
+    os.chown(path, uid, gid)
+    
 def format_time(_time):
     days = int(_time // 86400)
     hours = int(_time // 3600 % 24)
