@@ -28,6 +28,18 @@ class PictureArchiver:
 
         self.onAdvance = None
 
+    def _change_owner(path):
+        new_owner = os.environ.get('PA_NEW_OWNER')
+        if new_owner is None:
+            return
+        
+        new_group = os.environ.get('PA_NEW_GROUP')
+        if new_group is None:
+            return
+        
+        self._log("Changing owner of '" + path + "' to '" + new_owner + ':' + new_group + "'")
+        utils.change_owner(path, new_owner, new_group)
+        
     def _do_advance(self):
         try:
             if self.onAdvance is not None:
@@ -120,7 +132,9 @@ class PictureArchiver:
         if not os.path.isdir(dest_folder):
             self._log("CREATING: Folder '" + dest_folder + "'")
             if not self._diagnostics:
-                os.makedirs(dest_folder)
+                new_owner = os.environ.get('PA_NEW_OWNER')
+                new_group = os.environ.get('PA_NEW_GROUP')
+                utils.makedirs(dest_folder, new_owner, new_group)
 
 
     def _walk_dir(self, root_dir):
@@ -185,6 +199,7 @@ class PictureArchiver:
                     self._log("MOVING: '" + src_file + "' to '" + dest_file + "'")                    
                     if not self._diagnostics:
                         shutil.move(src_file, dest_folder)
+                        self._change_owner(dest_file)
                         self._bytes_copied = self._bytes_copied + src_size
 
                     files_left -= 1
@@ -198,7 +213,8 @@ class PictureArchiver:
                 else:                    
                     self._log("COPING: '" + src_file + "' to '" + dest_file + "'")
                     if not self._diagnostics:
-                        shutil.copy(src_file, dest_folder)  
+                        shutil.copy(src_file, dest_folder)
+                        self._change_owner(dest_file)
                         self._bytes_copied = self._bytes_copied + src_size
 
                 success = self._diagnostics or ((not move or not os.path.isfile(src_file)) and os.path.isfile(dest_file) and src_size == os.path.getsize(dest_file))
