@@ -15,10 +15,34 @@ primary_backup_marker = "destination_folder"
 secondary_backup_marker = "secondary_backup"
 
 def change_owner(path, owner, group):
+    if owner is None or group is None:
+        return
+    
     uid = pwd.getpwnam(owner).pw_uid
     gid = grp.getgrnam(group).gr_gid
     os.chown(path, uid, gid)
-    
+
+def makedirs(name, owner=None, group=None):
+    head, tail = path.split(name)
+    if not tail:
+        head, tail = path.split(head)
+    if head and tail and not path.exists(head):
+        try:
+            makedirs(head, owner=owner, group=group)
+        except FileExistsError:
+            # Defeats race condition when another thread created the path
+            pass
+        cdir = curdir
+        if isinstance(tail, bytes):
+            cdir = bytes(curdir, 'ASCII')
+        if tail == cdir:           # xxx/newdir/. exists if xxx/newdir exists
+            return
+    try:        
+        os.mkdir(name)
+        change_owner(name, owner=owner, group=group)
+    except OSError:
+        pass
+            
 def format_time(_time):
     days = int(_time // 86400)
     hours = int(_time // 3600 % 24)
