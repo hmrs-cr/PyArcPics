@@ -6,6 +6,9 @@ BACKUP_FOLDER='/media/hm/MainStorage/Fotos'
 LOG_FOLDER='/var/log/autobackupsd'
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 
+# Tell the backup command to change the owner of the  files.
+export PA_NEW_OWNER='www-data'
+export PA_NEW_GROUP='www-data'
 
 # Cancel any pending shutdown
 shutdown -c
@@ -106,10 +109,6 @@ then
   echo "Unmounting $DEVNAME"
   umount "$DEVNAME"
 fi
-
-YEAR=$(date +"%Y")
-echo "Changing permissions: $BACKUP_FOLDER/$YEAR  ..."
-chown -R www-data:www-data "$BACKUP_FOLDER/$YEAR"
 
 echo "Done!"
 led "100" "none" "green"
