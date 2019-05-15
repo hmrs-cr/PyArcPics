@@ -220,7 +220,6 @@ class PictureArchiver:
                     self._log("COPING: '" + src_file + "' to '" + dest_file + "'")
                     if not self._diagnostics:
                         shutil.copy(src_file, dest_folder)
-                        self._log(dest_file)
                         self._change_owner(dest_file)
                         self._bytes_copied = self._bytes_copied + src_size
 
