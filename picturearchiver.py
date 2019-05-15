@@ -227,9 +227,8 @@ class PictureArchiver:
                     self._success_count += 1
 
             except Exception as exp:
-                #self._error(exp)
-                #continue
-                raise
+                self._error(exp)
+                continue                
 
     def archive_pictures(self):
         self._imgCount = 0
