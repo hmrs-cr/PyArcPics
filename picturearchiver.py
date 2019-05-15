@@ -2,7 +2,7 @@
 
 import os
 import shutil
-import exiftool
+import pyexiv2
 import time
 import utils
 import datetime
@@ -62,7 +62,7 @@ class PictureArchiver:
         if not utils.is_picture(filename):
             return
         try:
-            exif_data = exiftool.ImageMetadata(filename)
+            exif_data = pyexiv2.ImageMetadata(filename)
             need_write = False
             exif_data.read()
 
