@@ -150,7 +150,7 @@ def read_picture_date(exif_data):
 
 def date_from_exif_data(filename):
     try:
-        exif_data = pyexiv2.ImageMetadata(filename)
+        exif_data = exiftool.ImageMetadata(filename)
         exif_data.read()
         obj_date = read_picture_date(exif_data)
     except Exception as ex:

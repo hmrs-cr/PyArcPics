@@ -62,7 +62,7 @@ class PictureArchiver:
         if not utils.is_picture(filename):
             return
         try:
-            exif_data = pyexiv2.ImageMetadata(filename)
+            exif_data = exiftool.ImageMetadata(filename)
             need_write = False
             exif_data.read()
 
