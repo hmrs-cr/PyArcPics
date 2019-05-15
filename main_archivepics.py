@@ -68,12 +68,12 @@ if __name__ == "__main__":
         except UnicodeEncodeError as e:
             continue
         for exp_path in expanded_paths:
-            #if os.path.isdir(exp_path):
+            if os.path.isdir(exp_path) or os.path.isfile(exp_path):
                 if not os.path.isfile(os.path.join(exp_path, ".no_backup")):
                     if not options.scan_only:
                         PictureArchiver.do(exp_path, dest_folder, move_destination, options.diagnostics, options.move, options.start_size)
                 else:
                     print "IGNORING:", exp_path
-            #else:
-            #    print path, " not found."
+            else:
+                print path, " not found."
 
