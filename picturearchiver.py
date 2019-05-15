@@ -211,7 +211,7 @@ class PictureArchiver:
                     files_left -= 1
                     if files_left == 0:
                         try:
-                            if not self._diagnostics:
+                            if not self._diagnostics and os.path.isdir(root_dir):                                
                                 os.rmdir(root_dir)
                         except:
                             self._error("Error removing dir")
