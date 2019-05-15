@@ -28,7 +28,7 @@ class PictureArchiver:
 
         self.onAdvance = None
 
-    def _change_owner(path):
+    def _change_owner(self, path):
         new_owner = os.environ.get('PA_NEW_OWNER')
         if new_owner is None:
             return
@@ -214,6 +214,7 @@ class PictureArchiver:
                     self._log("COPING: '" + src_file + "' to '" + dest_file + "'")
                     if not self._diagnostics:
                         shutil.copy(src_file, dest_folder)
+                        self._log(dest_file)
                         self._change_owner(dest_file)
                         self._bytes_copied = self._bytes_copied + src_size
 
@@ -226,8 +227,9 @@ class PictureArchiver:
                     self._success_count += 1
 
             except Exception as exp:
-                self._error(exp)
-                continue
+                #self._error(exp)
+                #continue
+                raise
 
     def archive_pictures(self):
         self._imgCount = 0

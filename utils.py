@@ -29,13 +29,11 @@ def makedirs(name, owner=None, group=None):
     if head and tail and not os.path.exists(head):
         try:
             makedirs(head, owner=owner, group=group)
-        except FileExistsError:
+        except OSError:
             # Defeats race condition when another thread created the path
             pass
-        cdir = curdir
-        if isinstance(tail, bytes):
-            cdir = bytes(curdir, 'ASCII')
-        if tail == cdir:           # xxx/newdir/. exists if xxx/newdir exists
+        
+        if tail == os.curdir:           # xxx/newdir/. exists if xxx/newdir exists
             return
     try:        
         os.mkdir(name)
