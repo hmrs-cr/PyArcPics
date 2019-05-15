@@ -138,8 +138,14 @@ class PictureArchiver:
 
 
     def _walk_dir(self, root_dir):
-        dir_list = os.listdir(root_dir)
-        self._imgCount += len(dir_list)
+
+        if os.path.isdir(root_dir):
+            dir_list = os.listdir(root_dir)
+            self._imgCount += len(dir_list)
+        else:
+            self._imgCount = 1
+            dir_list = [os.path.basename(root_dir)]
+            root_dir = os.path.dirname(root_dir)
 
         files_left = len(dir_list)
         for filename in dir_list:
@@ -227,9 +233,8 @@ class PictureArchiver:
                     self._success_count += 1
 
             except Exception as exp:
-                #self._error(exp)
-                #continue
-                raise
+                self._error(exp)
+                continue                
 
     def archive_pictures(self):
         self._imgCount = 0
