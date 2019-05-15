@@ -23,10 +23,10 @@ def change_owner(path, owner, group):
     os.chown(path, uid, gid)
 
 def makedirs(name, owner=None, group=None):
-    head, tail = path.split(name)
+    head, tail = os.path.split(name)
     if not tail:
-        head, tail = path.split(head)
-    if head and tail and not path.exists(head):
+        head, tail = os.path.split(head)
+    if head and tail and not os.path.exists(head):
         try:
             makedirs(head, owner=owner, group=group)
         except FileExistsError:
