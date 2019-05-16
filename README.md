@@ -1,7 +1,7 @@
 PyArcPics
 =========
 
-Collection of Python scripts that I use to handle, backup and share my huge picture collection.
+Python script that I use to handle, backup and share my huge picture collection.
 
 ArchivePics
 -----------
