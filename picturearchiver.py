@@ -22,8 +22,7 @@ class PictureArchiver:
         self._currImgIndex = 0
         self._success_count = 0
         self._currImgFileName = None
-        self._correct_dates_only = False
-        self._start_size = 0
+        self._correct_dates_only = False        
         self._move_destination = None
 
         self.onAdvance = None
@@ -167,11 +166,6 @@ class PictureArchiver:
                 continue
 
             src_size = os.path.getsize(src_file)
-            if self._start_size > 0:
-                if self._start_size > src_size:
-                    self._log("SKIPING: " + src_file + " is not larger than " + utils.sizeof_fmt(self._start_size) + " bytes (" +
-                              utils.sizeof_fmt(src_size) + ")")
-                    continue
 
             picture_date = utils.get_picture_date(src_file)
             if not isinstance(picture_date, datetime.datetime):
@@ -252,13 +246,11 @@ class PictureArchiver:
         self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
 
     @classmethod
-    def do(cls, src_path, dest_path, move_destination, diagnostics, move, start_size):
+    def do(cls, src_path, dest_path, move_destination, diagnostics, move):
         obj = cls(src_path, dest_path)
         obj._diagnostics = diagnostics
-        obj._move_files = move
-        obj._start_size = int(start_size) * 1024 * 1024
-        obj._move_destination = move_destination
-        print obj._start_size
+        obj._move_files = move        
+        obj._move_destination = move_destination        
 
         if obj._diagnostics:
             obj._log("WARING: Diagnostics mode activated.")
