@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import time
-import pyexiv2
 import re
 import datetime
 import pwd
@@ -150,10 +149,12 @@ def read_picture_date(exif_data):
 
 def date_from_exif_data(filename):
     try:
+        import pyexiv2
         exif_data = pyexiv2.ImageMetadata(filename)
         exif_data.read()
         obj_date = read_picture_date(exif_data)
     except Exception as ex:
+        print ex
         obj_date = None
 
     return obj_date
