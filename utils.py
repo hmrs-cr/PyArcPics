@@ -66,25 +66,12 @@ def format_time(_time):
     return "0 seconds"
 
 
-def format_eta(bits_per_second, elapsed_bits, total_bits):
-    remaining_bits = total_bits - elapsed_bits
-    remaining_time = remaining_bits / bits_per_second
-    return format_time(remaining_time)
-
-
 def sizeof_fmt(num, suffix='B'):
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
-
-
-def get_file_size(file_name):
-    try:
-        return os.path.getsize(file_name)
-    except:
-        return 0
 
 
 def has_exif(file_name):
@@ -95,37 +82,6 @@ def has_exif(file_name):
 def is_picture(file_name):
     fname, fext = os.path.splitext(file_name)
     return fext.lower() in [".jpg", ".jpeg", ".png"]
-
-
-def get_md5sum_from_file(input_file_name):
-    dir_name = os.path.dirname(input_file_name)
-    file_name = os.path.basename(input_file_name)
-    md5_file_name = os.path.join(dir_name, "." + file_name + ".md5")
-
-    if os.path.exists(md5_file_name):
-        file_date = get_date_from_file_date(input_file_name)
-        md5_file_date = get_date_from_file_date(md5_file_name)
-        if file_date <= md5_file_date:        
-            with open(md5_file_name, 'r') as content_file:
-                md5 = content_file.read()
-                if len(md5) == 32:
-                    return md5
-    
-    file_name = os.path.join(dir_name, file_name)
-    m = hashlib.md5()
-    with open(file_name, "rb") as f:
-        while True:
-            buf = f.read(128)
-            if not buf:
-                break
-            m.update(buf)
-
-    md5 = m.hexdigest()
-
-    with open(md5_file_name, "w") as text_file:
-        text_file.write(md5)
-
-    return md5
 
 
 def get_exif_value(exif_data, key):
@@ -228,17 +184,6 @@ def get_picture_date(picture_path):
     return obj_date
 
 
-def get_api_keys_from_config(config_file_name):
-    config_file_name = os.path.expanduser(config_file_name)
-    try:
-        config = json.load(open(config_file_name))
-        api_key = unicode(config["api_key"])
-        api_secret = unicode(config["api_secret"])
-        return api_key, api_secret
-    except Exception:
-        return None, None
-
-
 def get_drive_list():
     if os.name == "posix":
         import commands
@@ -284,34 +229,6 @@ def find_backup_folder(folder):
     return None
 
 
-def csl2dict(csl):
-    return dict(item.split("=") for item in csl.split(";"))
-
-
-def dict2csl(_dict):
-    return ";".join(["=".join([key, str(val)]) for key, val in _dict.items()])
-
-
-def vigenere_encode(key, string):
-    encoded_chars = []
-    for i in xrange(len(string)):
-        key_c = key[i % len(key)]
-        encoded_c = chr(ord(string[i]) + ord(key_c) % 256)
-        encoded_chars.append(encoded_c)
-    encoded_string = "".join(encoded_chars)
-    return base64.urlsafe_b64encode(encoded_string)
-
-
-def vigenere_decode(key, string):
-    decoded_chars = []
-    string = base64.urlsafe_b64decode(string)
-    for i in xrange(len(string)):
-        key_c = key[i % len(key)]
-        encoded_c = chr(abs(ord(string[i]) - ord(key_c) % 256))
-        decoded_chars.append(encoded_c)
-    decoded_string = "".join(decoded_chars)
-    return decoded_string
-
 MIME_TYPES = {
     "bmp": ["image/bmp", ""],
     "gif": ["image/gif", ""],
@@ -342,10 +259,6 @@ def file_name_to_mimetype(file_name):
         return MIME_TYPES[e.lower().lstrip(".")][0]
     except KeyError:
         return None
-
-
-def get_cipher_key(base):
-    return base + "-" + str(os.getegid()) + "-" + getpass.getuser()
 
 
 def get_sub_folder(file_name):
