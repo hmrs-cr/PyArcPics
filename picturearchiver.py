@@ -192,7 +192,9 @@ class PictureArchiver:
                     self._log("SKIPING: '" + dest_file + "' Source and destination are the same.")
                     continue
 
+                update = False
                 if os.path.isfile(dest_file):
+                    update = True
                     dest_size = os.path.getsize(dest_file)
                     if dest_size >= src_size:
                         self._log("SKIPING: '" + dest_file + "' already exists.")
@@ -216,8 +218,9 @@ class PictureArchiver:
                         except:
                             self._error("Error removing dir")
 
-                else:                    
-                    self._log("COPING: '" + src_file + "' to '" + dest_file + "'")
+                else:              
+                    action = "UPDATING: '" if update else "COPING: '"      
+                    self._log(action + src_file + "' to '" + dest_file + "'")
                     if not self._diagnostics:
                         shutil.copy(src_file, dest_folder)
                         self._change_owner(dest_file)
