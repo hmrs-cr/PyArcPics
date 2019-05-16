@@ -260,6 +260,11 @@ def file_name_to_mimetype(file_name):
     except KeyError:
         return None
 
+	
+def is_image(file_name):
+	mime = file_name_to_mimetype(file_name)
+	return mime is not None and mime.startswith('image')
+		
 
 def get_sub_folder(file_name):
     n, e = os.path.splitext(file_name)

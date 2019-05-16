@@ -24,6 +24,7 @@ class PictureArchiver:
         self._currImgFileName = None
         self._correct_dates_only = False        
         self._move_destination = None
+		self._include_video = False
 
         self.onAdvance = None
 
@@ -82,9 +83,12 @@ class PictureArchiver:
         except Exception as e:
             self._error(e)
 
-    def _is_valid_backup_file(self, file_name):
-        fname, fext = os.path.splitext(file_name)
-        return fext.lower().lstrip(".") in utils.MIME_TYPES.keys()
+    def _is_valid_backup_file(self, file_name):	
+		if self._include_video:
+			fname, fext = os.path.splitext(file_name)
+			return fext.lower().lstrip(".") in utils.MIME_TYPES.keys()
+		
+		return utils.is_image(file_name)
 
     @staticmethod
     def get_dest_folder_name(obj_date):
@@ -162,7 +166,7 @@ class PictureArchiver:
                 continue
 
             if not self._is_valid_backup_file(src_file):
-                self._log("SKIPING: '" + src_file + "' is not a picture or video")
+                self._log("SKIPING: '" + src_file + "'")
                 continue
 
             src_size = os.path.getsize(src_file)
