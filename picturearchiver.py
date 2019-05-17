@@ -2,7 +2,6 @@
 
 import os
 import shutil
-import pyexiv2
 import time
 import utils
 import datetime
@@ -24,9 +23,8 @@ class PictureArchiver:
         self._currImgFileName = None
         self._correct_dates_only = False        
         self._move_destination = None
-		self._include_video = False
-
-        self.onAdvance = None
+        self._include_video = False
+        self.onAdvance = None		
 
     def _change_owner(self, path):
         new_owner = os.environ.get('PA_NEW_OWNER')
@@ -62,6 +60,7 @@ class PictureArchiver:
         if not utils.is_picture(filename):
             return
         try:
+            import pyexiv2
             exif_data = pyexiv2.ImageMetadata(filename)
             need_write = False
             exif_data.read()
