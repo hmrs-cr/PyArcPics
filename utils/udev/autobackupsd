@@ -62,12 +62,6 @@ then
   exit 1
 fi
 
-if [ ! -d "$BACKUP_FOLDER" ]
-then
-  echo "Backup folder does not exists: $BACKUP_FOLDER"
-  error
-  exit 1
-fi
 
 MOUNT_POINT=$(lsblk -o MOUNTPOINT -nr "$DEVNAME" | xargs)
 
@@ -95,12 +89,12 @@ then
   exit 1
 fi
 
-echo "Starting backup from $MOUNT_POINT/DCIM to $BACKUP_FOLDER"
+echo "Starting backup from $MOUNT_POINT/DCIM"
 
 led "70" "fade_medium" "green"
 
-$BACKUP_COMMAND "$MOUNT_POINT/DCIM" "$BACKUP_FOLDER"
-check_exit_code "Backup script problem"
+$BACKUP_COMMAND "$MOUNT_POINT/DCIM"
+check_exit_code "Backup script"
 
 led "70" "fade_fast" "green"
 

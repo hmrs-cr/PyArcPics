@@ -188,9 +188,9 @@ def get_drive_list():
     if os.name == "posix":
         import commands
 
-        mount = commands.getoutput('mount -v')
+        mount = commands.getoutput('df -Ph')
         lines = mount.split('\n')
-        return map(lambda line: line.split()[2], filter(lambda l: l.startswith("/dev"), lines))
+        return map(lambda line: line.split(None, 5)[5], filter(lambda l: l.startswith("/dev"), lines))
     elif os.name == "nt":
         import win32api
 
@@ -213,19 +213,57 @@ def find_camera_folders(folder="DCIM"):
     return result
 
 
-def find_backup_folder(folder):
-    drives = get_drive_list()
-    import glob
+def read_backup_folder_options(options_file_name):
+
+    options = {
+        "priority": 100,
+        "subfolder": None,
+        "dest_path": os.path.dirname(options_file_name),
+        "diagnostics": False,
+        "move": False,
+        "min_size": 32
+    }
+
+    try:
+        config = json.load(open(options_file_name))
+        for key, value in config.iteritems():
+            options[key] = value
+
+        if options["subfolder"] is not None:
+            options["dest_path"] = os.path.join(options["dest_path"] , options["subfolder"])
+    except:
+        pass
+    
+    return options
+
+
+def get_backup_folders(config_file_name=primary_backup_marker):
+
+    def sortPriority(val):
+        return val["priority"]
+
+    drives = get_drive_list()    
+    folders = []
     for drive in drives:
-        if drive == "/" or drive == "/home":
+        if drive == "/":
             continue
+        
+        config_file_path = os.path.join(drive, config_file_name)        
+        if os.path.isfile(config_file_path):
+            folders.append(read_backup_folder_options(config_file_path))
 
-        paths = glob.glob(os.path.join(drive, "*", folder))
-        if len(paths) == 1:
-            if os.path.isfile(paths[0]):
-                folder, file = os.path.split(paths[0])
-                return folder
+    folders.sort(key = sortPriority)
+    
+    return folders
+        
 
+
+def find_backup_folder(folder=primary_backup_marker):
+    drives = get_drive_list()    
+    for folder in get_backup_folders(folder):        
+        if os.path.isdir(folder["dest_path"]):
+            return folder["dest_path"]
+        
     return None
 
 

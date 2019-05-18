@@ -53,11 +53,11 @@ if __name__ == "__main__":
         dest_folder = utils.find_backup_folder(utils.primary_backup_marker)
         if dest_folder is None:
             sys.stderr.write("Could not determine backup folder\n")
-            exit()
+            exit(1)
 
     if not isinstance(src_folders, list):
         sys.stderr.write("Source folders in config is not a valid list: " + src_folders + "\n")
-        exit()
+        exit(1)
 
     print "Backup location:", dest_folder
     for path in src_folders:

@@ -260,6 +260,20 @@ class PictureArchiver:
         obj.archive_pictures()
 
     @classmethod
+    def archive(cls, source, destination_options):
+        obj = cls(src_path, destination_options["dest_path"])
+
+        obj._diagnostics = destination_options["diagnostics"]
+        obj._move_files = destination_options["move"]        
+        obj._move_destination = None         
+
+        if obj._diagnostics:
+            obj._log("WARING: Diagnostics mode activated.")
+
+        obj.archive_pictures()
+
+
+    @classmethod
     def correct_dates(cls, src_path):
         obj = cls(src_path, src_path)
         obj._walk_dir_correct_date(src_path)
