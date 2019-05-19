@@ -9,9 +9,17 @@ import datetime
 import pwd
 import grp
 
-
 primary_backup_marker = "destination_folder"
 secondary_backup_marker = "secondary_backup"
+
+PA_NEW_OWNER="PA_NEW_OWNER"
+PA_NEW_GROUP="PA_NEW_GROUP"
+
+error_printed = False
+
+def error(e):    
+    print '\033[91mERROR:', e, '\033[0m'
+
 
 def change_owner(path, owner, group):
     if owner is None or group is None:
@@ -102,15 +110,14 @@ def read_picture_date(exif_data):
 
     return obj_date
 
-
 def date_from_exif_data(filename):
+    
     try:
         import pyexiv2
         exif_data = pyexiv2.ImageMetadata(filename)
         exif_data.read()
         obj_date = read_picture_date(exif_data)
-    except Exception as ex:
-        print ex
+    except Exception as ex:           
         obj_date = None
 
     return obj_date
@@ -221,7 +228,9 @@ def read_backup_folder_options(options_file_name):
         "dest_path": os.path.dirname(options_file_name),
         "diagnostics": False,
         "move": False,
-        "min_size": 32
+        "min_size": 32,
+        "user": None,
+        "group": None
     }
 
     try:
@@ -257,11 +266,14 @@ def get_backup_folders(config_file_name=primary_backup_marker):
     return folders
         
 
-
-def find_backup_folder(folder=primary_backup_marker):
-    drives = get_drive_list()    
+def find_backup_folder(folder=primary_backup_marker):       
     for folder in get_backup_folders(folder):        
         if os.path.isdir(folder["dest_path"]):
+            if folder["user"] is not None:
+                os.environ[PA_NEW_OWNER] = folder["user"]
+            if folder["group"] is not None:
+                os.environ[PA_NEW_GROUP] = folder["group"]
+
             return folder["dest_path"]
         
     return None

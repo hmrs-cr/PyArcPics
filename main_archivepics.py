@@ -5,6 +5,8 @@ import argparse
 
 import os
 import sys
+import pwd
+import grp
 from picturearchiver import PictureArchiver
 import utils
 
@@ -58,8 +60,21 @@ if __name__ == "__main__":
     if not isinstance(src_folders, list):
         sys.stderr.write("Source folders in config is not a valid list: " + src_folders + "\n")
         exit(1)
+    
+    newusergroup = ""
+    new_owner = os.environ.get(utils.PA_NEW_OWNER)
+    if new_owner is not None:
+        try:
+            pwd.getpwnam(new_owner)
+            new_group = os.environ.get(utils.PA_NEW_GROUP)
+            if new_group is not None:
+                grp.getgrnam(new_group)
+                newusergroup = "(" + new_owner + ":" + new_group + ")"
+        except Exception as e:
+            utils.error(e)
 
-    print "Backup location:", dest_folder
+    print "Backup location:", dest_folder, newusergroup
+    
     for path in src_folders:
         import glob
         try:
@@ -69,10 +84,11 @@ if __name__ == "__main__":
         for exp_path in expanded_paths:
             if os.path.isdir(exp_path) or os.path.isfile(exp_path):
                 if not os.path.isfile(os.path.join(exp_path, ".no_backup")):
+                    print "SOURCE FOLDER:", exp_path
                     if not options.scan_only:
                         PictureArchiver.do(exp_path, dest_folder, move_destination, options.diagnostics, options.move)
                 else:
                     print "IGNORING:", exp_path
             else:
-                print path, " not found."
+                print "NOT FOUND:", path
 

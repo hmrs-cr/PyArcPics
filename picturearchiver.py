@@ -27,15 +27,14 @@ class PictureArchiver:
         self.onAdvance = None		
 
     def _change_owner(self, path):
-        new_owner = os.environ.get('PA_NEW_OWNER')
+        new_owner = os.environ.get(utils.PA_NEW_OWNER)
         if new_owner is None:
             return
         
-        new_group = os.environ.get('PA_NEW_GROUP')
+        new_group = os.environ.get(utils.PA_NEW_GROUP)
         if new_group is None:
             return
-        
-        self._log("Changing owner of '" + path + "' to '" + new_owner + ':' + new_group + "'")
+
         utils.change_owner(path, new_owner, new_group)
         
     def _do_advance(self):
@@ -54,7 +53,7 @@ class PictureArchiver:
             print text
 
     def _error(self, msg):
-        print "ERROR:", msg
+        print utils.error(msg)
 
     def _correct_exif_date(self, filename, date):
         if not utils.is_picture(filename):
@@ -80,7 +79,7 @@ class PictureArchiver:
             if need_write:
                 exif_data.write(True)
         except Exception as e:
-            self._error(e)
+            pass
 
     def _is_valid_backup_file(self, file_name):	
 		if self._include_video:
@@ -134,8 +133,8 @@ class PictureArchiver:
         if not os.path.isdir(dest_folder):
             self._log("CREATING: Folder '" + dest_folder + "'")
             if not self._diagnostics:
-                new_owner = os.environ.get('PA_NEW_OWNER')
-                new_group = os.environ.get('PA_NEW_GROUP')
+                new_owner = os.environ.get(utils.PA_NEW_OWNER)
+                new_group = os.environ.get(utils.PA_NEW_GROUP)
                 utils.makedirs(dest_folder, new_owner, new_group)
 
 
@@ -236,6 +235,13 @@ class PictureArchiver:
                 continue                
 
     def archive_pictures(self):
+
+        # Just to report that pyexiv2 does not exists in the system
+        try:
+            import pyexiv2
+        except Exception as ex:
+            utils.error(ex)
+
         self._imgCount = 0
         self._currImgIndex = 0
         self._success_count = 0
@@ -264,7 +270,7 @@ class PictureArchiver:
         obj = cls(src_path, destination_options["dest_path"])
 
         obj._diagnostics = destination_options["diagnostics"]
-        obj._move_files = destination_options["move"]        
+        obj._move_files = destination_options["move"]
         obj._move_destination = None         
 
         if obj._diagnostics:
