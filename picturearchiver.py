@@ -35,7 +35,11 @@ class PictureArchiver:
         if new_group is None:
             return
 
-        utils.change_owner(path, new_owner, new_group)
+        new_mod = os.environ.get(utils.PA_NEW_MODE)
+        if new_mod is not None:
+            new_mod = int(new_mod, 8)
+
+        utils.change_owner(path, new_owner, new_group, new_mod)
         
     def _do_advance(self):
         try:

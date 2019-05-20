@@ -14,6 +14,7 @@ secondary_backup_marker = "secondary_backup"
 
 PA_NEW_OWNER="PA_NEW_OWNER"
 PA_NEW_GROUP="PA_NEW_GROUP"
+PA_NEW_MODE="PA_NEW_MODE"
 
 error_printed = False
 
@@ -21,13 +22,17 @@ def error(e):
     print '\033[91mERROR:', e, '\033[0m'
 
 
-def change_owner(path, owner, group):
+def change_owner(path, owner, group, mod=None):
     if owner is None or group is None:
         return
     
     uid = pwd.getpwnam(owner).pw_uid
     gid = grp.getgrnam(group).gr_gid
     os.chown(path, uid, gid)
+
+    if mod is not None:
+        os.chmod(path, mod)
+
 
 def makedirs(name, owner=None, group=None):
     head, tail = os.path.split(name)
@@ -230,7 +235,8 @@ def read_backup_folder_options(options_file_name):
         "move": False,
         "min_size": 32,
         "user": None,
-        "group": None
+        "group": None,
+        "mod": None
     }
 
     try:
@@ -273,6 +279,8 @@ def find_backup_folder(folder=primary_backup_marker):
                 os.environ[PA_NEW_OWNER] = folder["user"]
             if folder["group"] is not None:
                 os.environ[PA_NEW_GROUP] = folder["group"]
+            if folder["mod"] is not None:
+                os.environ[PA_NEW_MODE] = folder["mod"]
 
             return folder["dest_path"]
         
