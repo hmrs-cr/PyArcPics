@@ -233,15 +233,15 @@ def read_backup_folder_options(options_file_name):
         "group": None
     }
 
-    #try:
-    config = json.load(open(options_file_name))
-    for key, value in config.iteritems():
-        options[key] = value
+    try:
+        config = json.load(open(options_file_name))
+        for key, value in config.iteritems():
+            options[key] = value
 
-    if options["subfolder"] is not None:
-        options["dest_path"] = os.path.join(options["dest_path"] , options["subfolder"])
-    #except:
-    #    pass
+        if options["subfolder"] is not None:
+            options["dest_path"] = os.path.join(options["dest_path"] , options["subfolder"])
+    except:
+        pass
     
     return options
 
