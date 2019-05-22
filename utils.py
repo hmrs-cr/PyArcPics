@@ -8,6 +8,7 @@ import re
 import datetime
 import pwd
 import grp
+import statvfs
 
 primary_backup_marker = "destination_folder"
 secondary_backup_marker = "secondary_backup"
@@ -202,7 +203,9 @@ def get_drive_list():
 
         mount = commands.getoutput('df -Ph')
         lines = mount.split('\n')
-        return map(lambda line: line.split(None, 5)[5], filter(lambda l: l.startswith("/dev"), lines))
+        lines.reverse()
+        uniquelines = dict(map(lambda line: (line.split(None, 5)[0], line), filter(lambda l: l.startswith("/dev"), lines))).values()        
+        return map(lambda line: line.split(None, 5)[5], uniquelines)
     elif os.name == "nt":
         import win32api
 
@@ -275,6 +278,13 @@ def get_backup_folders(config_file_name=primary_backup_marker):
 def find_backup_folder(folder=primary_backup_marker):       
     for folder in get_backup_folders(folder):        
         if os.path.isdir(folder["dest_path"]):
+            min_size = folder["min_size"]
+            if min_size is not None:
+                drive_size = get_free_space_in_mb(folder["dest_path"])                
+                if drive_size < int(min_size): 
+                    error("No enough space in {path}.".format(path=folder["dest_path"]))
+                    continue               
+
             if folder["user"] is not None:
                 os.environ[PA_NEW_OWNER] = folder["user"]
             if folder["group"] is not None:
@@ -329,3 +339,9 @@ def get_sub_folder(file_name):
         return MIME_TYPES[e.lower().lstrip(".")][1]
     except KeyError:
         return None
+
+def get_free_space_in_mb(path):
+    stats = os.statvfs(path)
+    return (stats[statvfs.F_FRSIZE] * stats[statvfs.F_BFREE]) * 0.000001
+
+
