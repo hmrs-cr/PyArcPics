@@ -24,7 +24,7 @@ def error(e):
 
 
 def change_owner(path, owner, group, mod=None):
-    if owner is None or group is None:
+    if not owner or not group:
         return
     
     uid = pwd.getpwnam(owner).pw_uid

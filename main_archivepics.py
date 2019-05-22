@@ -71,8 +71,8 @@ if __name__ == "__main__":
                 grp.getgrnam(new_group)
                 newusergroup = "(" + new_owner + ":" + new_group + ")"
         except Exception as e:
-            os.environ[utils.PA_NEW_OWNER] = None
-            os.environ[utils.PA_NEW_GROUP] = None
+            os.environ[utils.PA_NEW_OWNER] = ""
+            os.environ[utils.PA_NEW_GROUP] = ""
             utils.error(e)
 
     print "Backup location:", dest_folder, newusergroup
