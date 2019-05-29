@@ -10,7 +10,7 @@ BACKUP_COMMAND='/usr/local/bin/arcpics'
 shutdown -c
 
 led() {
-  if [ -f /proc/acpi/nuc_led ]
+  if [ -w /proc/acpi/nuc_led ]
   then
     echo "ring,$1,$2,$3" |  tee /proc/acpi/nuc_led > /dev/null
   fi
