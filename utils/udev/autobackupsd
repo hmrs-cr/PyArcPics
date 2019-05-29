@@ -3,6 +3,7 @@
 # Settings
 DEFAULT_MOUNT_POINT='/media/autobackupsd'
 LOG_FOLDER='/var/log/autobackupsd'
+HOME_LOG_FOLDER='~/.autobackupsd'
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 
 # Cancel any pending shutdown
@@ -52,10 +53,16 @@ notification() {
   curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=SD Backup: $MESSAGE" > /dev/null 2>&1
 }
 
-if [[ ! $- == *i* ]]
+[ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
+if  [ ! -w "$LOG_FOLDER" ]
 then
+  LOG_FOLDER = "$HOME_LOG_FOLDER"
   [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
-  if [ -d "$LOG_FOLDER" ]
+fi
+
+if [[ ! $- == *i* ]]
+then  
+  if [ -w "$LOG_FOLDER" ]
   then
     LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
     echo "Using log file '$LOG_FILE'"
@@ -112,11 +119,16 @@ then
   exit 1
 fi
 
+if [ -w "$LOG_FOLDER" ]
+then
+  LOG_RESULTS_FILE="$LOG_FOLDER/$(date +%F-%T).result"
+fi
+
 info "Starting backup from $MOUNT_POINT/DCIM"
 
 led "70" "fade_medium" "green"
 
-$BACKUP_COMMAND "$MOUNT_POINT/DCIM"
+$BACKUP_COMMAND -l "$LOG_RESULTS_FILE" "$MOUNT_POINT/DCIM"
 check_exit_code "Backup script"
 
 led "70" "fade_fast" "green"
@@ -127,6 +139,13 @@ then
   umount "$DEVNAME"
 fi
 
-info "Done!"
+if [ -f "$LOG_RESULTS_FILE" ]
+then
+  source "$LOG_RESULTS_FILE"
+  notification "Done: $COPIED_NUMBER of $TOTAL_NUMBER ($DATA_AMOUNT) files copied to $DESTINATION_PATH in $DURATION_TIME"
+  echo "Done!"
+else
+  info "Done!"
+fi
 led "100" "none" "green"
 
