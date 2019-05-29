@@ -1,12 +1,29 @@
 #!/bin/bash
 
+INSTALL_DIR=/usr/local/bin
+
+# **** Un-install ****
+if [ "$1" == "uninstall"]
+then
+    rm "$INSTALL_DIR/arcpics"
+    rm "$INSTALL_DIR/autobackupsd"
+    rm "$INSTALL_DIR/sdremoved"
+    
+    if [ -f "/etc/udev/rules.d/99-autobackupsd.rules" ]
+    then
+        rm "/etc/udev/rules.d/99-autobackupsd.rules"
+        udevadm control --reload
+    fi
+    exit 0
+fi
+
+
+# **** Install ****
 if [ ! -f ./autobackupsd ]
 then
     echo "Wrong directory."
     exit
 fi
-
-INSTALL_DIR=/usr/local/bin
 
 ln -s "$(readlink -f ../../main_archivepics.py)" "$INSTALL_DIR/arcpics"
 ln -s "$(readlink -f ./autobackupsd)" "$INSTALL_DIR/autobackupsd"
