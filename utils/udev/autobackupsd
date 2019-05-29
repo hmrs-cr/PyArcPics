@@ -10,29 +10,59 @@ BACKUP_COMMAND='/usr/local/bin/arcpics'
 shutdown -c
 
 led() {
-  echo "ring,$1,$2,$3" |  tee /proc/acpi/nuc_led > /dev/null
+  if [ -f /proc/acpi/nuc_led ]
+  then
+    echo "ring,$1,$2,$3" |  tee /proc/acpi/nuc_led > /dev/null
+  fi
 }
 
 error () {
+  if [ "$1" ]
+  then
+    printf "\033[91m$1\033[0m\n"
+    notification "$1"
+  fi
   led "90" "blink_fast" "red"  
 }
 
 check_exit_code() {
   if [ "$?" != "0" ]
-  then
-     echo "Error $1"
-     error
+  then     
+     error "Error $1"
      exit $?
   fi
 }
-  
+
+info() {
+  echo $1
+  notification "$1"
+}
+
+notification() {
+  if [ -z "$TELEGRAM_BOT_KEY" ]
+  then
+      return 1
+  fi
+
+  if [ -z "$TELEGRAM_CHAT_ID" ]
+  then
+      return 1
+  fi
+
+  MESSAGE=$(printf "$1")
+  curl "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=SD Backup: $MESSAGE" > /dev/null 2>&1
+}
+
 if [[ ! $- == *i* ]]
 then
   [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
-  LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
-  echo "Using log file '$LOG_FILE'"
-  exec >> $LOG_FILE
-  exec 2>&1
+  if [ -d "$LOG_FOLDER" ]
+  then
+    LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
+    echo "Using log file '$LOG_FILE'"
+    exec >> $LOG_FILE
+    exec 2>&1
+  fi
 fi
 
 # Must be 1
@@ -44,17 +74,15 @@ fi
 
 # Must be a block device
 if [ ! -b "$DEVNAME" ]
-then
-  echo "Device '$DEVICENAME' is not a block device"
-  error
+then  
+  error "Device '$DEVICENAME' is not a block device"
   exit 1
 fi
 
 # Must be partition
 if [ "$DEVTYPE" != "partition" ]
 then
-  echo "Device is not a partition: $DEVTYPE."
-  error
+  error "Device is not a partition: $DEVTYPE."
   exit 1
 fi
 
@@ -85,7 +113,7 @@ then
   exit 1
 fi
 
-echo "Starting backup from $MOUNT_POINT/DCIM"
+info "Starting backup from $MOUNT_POINT/DCIM"
 
 led "70" "fade_medium" "green"
 
@@ -100,6 +128,6 @@ then
   umount "$DEVNAME"
 fi
 
-echo "Done!"
+info "Done!"
 led "100" "none" "green"
 

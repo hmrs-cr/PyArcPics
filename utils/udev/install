@@ -10,5 +10,8 @@ ln -s "$(readlink -f ../../main_archivepics.py)" /usr/local/bin/arcpics
 ln -s "$(readlink -f ./autobackupsd)" /usr/local/bin/autobackupsd
 ln -s "$(readlink -f ./sdremoved)" /usr/local/bin/sdremoved
 
-cp ./99-autobackupsd.rules /etc/udev/rules.d/99-autobackupsd.rules
-udevadm control --reload
+if [ -d "/etc/udev/rules.d" ]
+then
+    cp ./99-autobackupsd.rules /etc/udev/rules.d/99-autobackupsd.rules
+    udevadm control --reload
+fi
