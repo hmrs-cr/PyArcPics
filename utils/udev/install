@@ -6,9 +6,11 @@ then
     exit
 fi
 
-ln -s "$(readlink -f ../../main_archivepics.py)" /usr/local/bin/arcpics
-ln -s "$(readlink -f ./autobackupsd)" /usr/local/bin/autobackupsd
-ln -s "$(readlink -f ./sdremoved)" /usr/local/bin/sdremoved
+INSTALL_DIR=/usr/local/bin
+
+ln -s "$(readlink -f ../../main_archivepics.py)" "$INSTALL_DIR/arcpics"
+ln -s "$(readlink -f ./autobackupsd)" "$INSTALL_DIR/autobackupsd"
+ln -s "$(readlink -f ./sdremoved)" "$INSTALL_DIR/sdremoved"
 
 if [ -d "/etc/udev/rules.d" ]
 then
