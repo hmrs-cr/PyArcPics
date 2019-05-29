@@ -24,7 +24,9 @@ class PictureArchiver:
         self._correct_dates_only = False        
         self._move_destination = None
         self._include_video = False
-        self.onAdvance = None		
+        self.onAdvance = None
+	self.log_file_name = None
+	self.log_file = None
 
     def _change_owner(self, path):
         new_owner = os.environ.get(utils.PA_NEW_OWNER)
@@ -51,7 +53,7 @@ class PictureArchiver:
     def _log(self, text):
         if self._verbose:
             print text
-
+	
     def _debug(self, text):
         if self._debug:
             print text
@@ -245,6 +247,11 @@ class PictureArchiver:
             import pyexiv2
         except Exception as ex:
             utils.error(ex)
+	
+	try:
+            self.log_file = open(self.log_file_name, "w")
+        except Exception as ex:
+            utils.error(ex)
 
         self._imgCount = 0
         self._currImgIndex = 0
@@ -257,13 +264,18 @@ class PictureArchiver:
 
         self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
         self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
+	
+	if self.log_file is not None:
+		self.log_file.close()
+		self.log_file = None
 
     @classmethod
-    def do(cls, src_path, dest_path, move_destination, diagnostics, move):
+    def do(cls, src_path, dest_path, move_destination, diagnostics, move, log_file):
         obj = cls(src_path, dest_path)
         obj._diagnostics = diagnostics
         obj._move_files = move        
-        obj._move_destination = move_destination        
+        obj._move_destination = move_destination
+	obj.log_file_name =  log_file
 
         if obj._diagnostics:
             obj._log("WARING: Diagnostics mode activated.")
