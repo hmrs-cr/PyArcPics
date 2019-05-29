@@ -18,7 +18,8 @@ if __name__ == "__main__":
     parser.add_argument('source', help='The source folder.', nargs='?', default=None)
     parser.add_argument('destination', help='The destination folder.', nargs='?', default=None)
     parser.add_argument('move_destination', help='The move destination folder...', nargs='?', default=None)
-    parser.add_argument('-c', dest="config", help='The config file', default=None)    
+    parser.add_argument('-c', dest="config", help='The config file', default=None)
+    parser.add_argument('-l', dest="log_file", help='Log operation result values to file', default=None)
     parser.add_argument('-m', dest='move', action="store_true", help="Move files instead of copy them.")
     parser.add_argument('-d', dest='diagnostics', action="store_true", help="Don't run the actual actions.")
     parser.add_argument('-s', dest='scan_only', action="store_true", help="Scan folder but don't perform backup")
@@ -88,7 +89,7 @@ if __name__ == "__main__":
                 if not os.path.isfile(os.path.join(exp_path, ".no_backup")):
                     print "SOURCE FOLDER:", exp_path
                     if not options.scan_only:
-                        PictureArchiver.do(exp_path, dest_folder, move_destination, options.diagnostics, options.move)
+                        PictureArchiver.do(exp_path, dest_folder, move_destination, options.diagnostics, options.move, options.log_file)
                 else:
                     print "IGNORING:", exp_path
             else:
