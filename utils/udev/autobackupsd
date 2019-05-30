@@ -53,6 +53,12 @@ notification() {
   curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=*SD Backup:* $MESSAGE" > /dev/null 2>&1
 }
 
+if [ -f /etc/autobackupsd ]
+then
+  echo "Reading config: /etc/autobackupsd"
+  source /etc/autobackupsd
+fi
+
 [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
 if  [ ! -w "$LOG_FOLDER" ]
 then
@@ -117,11 +123,6 @@ if [ ! -d "$MOUNT_POINT/DCIM" ]
 then
   echo "SD Card does not contains a picture folder: $MOUNT_POINT/DCIM"  
   exit 1
-fi
-
-if [ -f /etc/autobackupsd ]
-then
- source /etc/autobackupsd
 fi
 
 if [ -w "$LOG_FOLDER" ]
