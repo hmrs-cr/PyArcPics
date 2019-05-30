@@ -119,6 +119,11 @@ then
   exit 1
 fi
 
+if [ -f /etc/autobackupsd ]
+then
+ source /etc/autobackupsd
+fi
+
 if [ -w "$LOG_FOLDER" ]
 then
   LOG_RESULTS_FILE="$LOG_FOLDER/$(date +%F-%T).result"
