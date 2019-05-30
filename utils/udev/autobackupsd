@@ -5,9 +5,36 @@ DEFAULT_MOUNT_POINT='/media/autobackupsd'
 LOG_FOLDER='/var/log/autobackupsd'
 HOME_LOG_FOLDER="$HOME/.autobackupsd"
 BACKUP_COMMAND='/usr/local/bin/arcpics'
+PIPE='/var/run/autobackupsd.pipe'
 
-# Cancel any pending shutdown
-shutdown -c > /dev/null 2>&1
+if [ "$1" == "-udev" ]
+then
+  # Cancel any pending shutdown
+  shutdown -c > /dev/null 2>&1
+
+  # Must be 1
+  if [ "$ID_DRIVE_FLASH_SD" != "1" ]
+  then
+    echo "Device is not a SD Card: $DEVNAME ."
+    exit 1 # Exit silently.
+  fi
+
+  # Must be partition
+  if [ "$DEVTYPE" != "partition" ]
+  then
+    echo "Device is not a partition: $DEVTYPE."
+    exit 1
+  fi
+  
+  echo "$DEVNAME" > $PIPE
+  
+  exit 0
+fi
+
+if [ "$1" == "-serv" ]
+then
+  
+fi
 
 led() {
   if [ -w /proc/acpi/nuc_led ]
@@ -62,11 +89,11 @@ then
   [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
 fi
 
+LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
 if [[ ! $- == *i* ]]
 then  
   if [ -w "$LOG_FOLDER" ]
-  then
-    LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
+  then    
     echo "Using log file '$LOG_FILE'"
     exec >> $LOG_FILE
     exec 2>&1
@@ -79,27 +106,17 @@ then
   source /etc/autobackupsd
 fi
 
-# Must be 1
-if [ "$ID_DRIVE_FLASH_SD" != "1" ]
+if [ "$1" ]
 then
-  echo "Device is not a SD Card: $DEVNAME ."
-  exit 1 # Exit silently.
+  DEVNAME="$1"
 fi
 
 # Must be a block device
 if [ ! -b "$DEVNAME" ]
 then  
-  error "Device '$DEVICENAME' is not a block device"
+  echo "Device '$DEVICENAME' is not a block device"
   exit 1
 fi
-
-# Must be partition
-if [ "$DEVTYPE" != "partition" ]
-then
-  error "Device is not a partition: $DEVTYPE."
-  exit 1
-fi
-
 
 MOUNT_POINT=$(lsblk -o MOUNTPOINT -nr "$DEVNAME" | xargs)
 
@@ -129,7 +146,7 @@ fi
 
 if [ -w "$LOG_FOLDER" ]
 then
-  LOG_RESULTS_FILE="$LOG_FOLDER/$(date +%F-%T).result"
+  LOG_RESULTS_FILE=${LOG_FILE/.log/.result}
 fi
 
 info "Starting backup from $MOUNT_POINT/DCIM"
