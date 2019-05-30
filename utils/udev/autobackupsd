@@ -58,7 +58,7 @@ notification() {
 [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
 if  [ ! -w "$LOG_FOLDER" ]
 then
-  LOG_FOLDER = "$HOME_LOG_FOLDER"
+  LOG_FOLDER="$HOME_LOG_FOLDER"
   [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
 fi
 
