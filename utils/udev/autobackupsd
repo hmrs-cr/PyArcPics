@@ -3,7 +3,7 @@
 # Settings
 DEFAULT_MOUNT_POINT='/media/autobackupsd'
 LOG_FOLDER='/var/log/autobackupsd'
-HOME_LOG_FOLDER="~/.autobackupsd"
+HOME_LOG_FOLDER="$HOME/.autobackupsd"
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 
 # Cancel any pending shutdown
