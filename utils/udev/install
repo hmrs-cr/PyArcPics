@@ -8,6 +8,7 @@ then
     rm "$INSTALL_DIR/arcpics"
     rm "$INSTALL_DIR/autobackupsd"
     rm "$INSTALL_DIR/sdremoved"
+    rm /var/run/autobackupsd.pipe
     
     if [ -f "/etc/udev/rules.d/99-autobackupsd.rules" ]
     then
@@ -28,6 +29,7 @@ fi
 ln -s "$(readlink -f ../../main_archivepics.py)" "$INSTALL_DIR/arcpics"
 ln -s "$(readlink -f ./autobackupsd)" "$INSTALL_DIR/autobackupsd"
 ln -s "$(readlink -f ./sdremoved)" "$INSTALL_DIR/sdremoved"
+mkfifo /var/run/autobackupsd.pipe
 
 if [ -d "/etc/udev/rules.d" ]
 then
