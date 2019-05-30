@@ -41,15 +41,18 @@ info() {
 notification() {
   if [ -z "$TELEGRAM_BOT_KEY" ]
   then
+      echo "No TELEGRAM_BOT_KEY"
       return 1
   fi
 
   if [ -z "$TELEGRAM_CHAT_ID" ]
   then
+      echo "No TELEGRAM_CHAT_ID"
       return 1
   fi
-
+  
   MESSAGE=$(printf "$1")
+  echo "MESSAGE: $MESSAGE"
   curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=*SD Backup:* $MESSAGE" > /dev/null 2>&1
 }
 
