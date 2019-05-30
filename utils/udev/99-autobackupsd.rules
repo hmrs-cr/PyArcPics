@@ -1,3 +1,3 @@
-ACTION=="add", SUBSYSTEM=="block", ATTR{partition}=="1", ATTRS{type}=="SD",  RUN+="/usr/local/bin/autobackupsd"
+ACTION=="add", SUBSYSTEM=="block", ATTR{partition}=="1", ATTRS{type}=="SD",  RUN+="/usr/local/bin/autobackupsd -udev"
 
 ACTION=="remove", SUBSYSTEM=="block", RUN+="/usr/local/bin/sdremoved"
