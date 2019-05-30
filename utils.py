@@ -340,8 +340,11 @@ def get_sub_folder(file_name):
     except KeyError:
         return None
 
-def get_free_space_in_mb(path):
+def get_free_space(path):
     stats = os.statvfs(path)
-    return (stats[statvfs.F_FRSIZE] * stats[statvfs.F_BFREE]) * 0.000001
+    return (stats[statvfs.F_FRSIZE] * stats[statvfs.F_BFREE])
+
+def get_free_space_in_mb(path):
+    return get_free_space(path) * 0.000001
 
 

@@ -50,7 +50,7 @@ notification() {
   fi
 
   MESSAGE=$(printf "$1")
-  curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=SD Backup: $MESSAGE" > /dev/null 2>&1
+  curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=*SD Backup:* $MESSAGE" > /dev/null 2>&1
 }
 
 [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
@@ -142,7 +142,7 @@ fi
 if [ -f "$LOG_RESULTS_FILE" ]
 then
   source "$LOG_RESULTS_FILE"
-  notification "Done: $COPIED_NUMBER of $TOTAL_NUMBER ($DATA_AMOUNT) files copied to $DESTINATION_PATH in $DURATION_TIME"
+  notification "\n\n*Done!*\n\n $COPIED_NUMBER of $TOTAL_NUMBER ($DATA_AMOUNT) files copied to $DESTINATION_PATH in $DURATION_TIME.\n$FREE_SPACE_IN_DESTINATION_PATH available."
   echo "Done!"
 else
   info "Done!"

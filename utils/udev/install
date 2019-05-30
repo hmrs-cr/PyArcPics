@@ -3,7 +3,7 @@
 INSTALL_DIR=/usr/local/bin
 
 # **** Un-install ****
-if [ "$1" == "uninstall"]
+if [ "$1" == "uninstall" ]
 then
     rm "$INSTALL_DIR/arcpics"
     rm "$INSTALL_DIR/autobackupsd"

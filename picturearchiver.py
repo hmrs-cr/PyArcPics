@@ -246,28 +246,52 @@ class PictureArchiver:
         try:
             import pyexiv2
         except Exception as ex:
-            utils.error(ex)
-	
-	try:
-            self.log_file = open(self.log_file_name, "w")
-        except Exception as ex:
-            utils.error(ex)
+            utils.error(ex)	    
 
         self._imgCount = 0
         self._currImgIndex = 0
         self._success_count = 0
         self._bytes_copied = 0
+        self._start_time = time.time()
 
-        start_time = time.time()
-        self._walk_dir(self._srcPath)
-        totalTime = utils.format_time(time.time() - start_time)
+        try:            
+            self._walk_dir(self._srcPath)
+            self._finish()            
+        except KeyboardInterrupt as ki:
+            self._finish(True, ki)
+            pass
+        except Exception as e:
+            self._finish(True, e)
+            utils.error(e)
+            pass
+
+        
+
+    def _finish(self, canceled=False, error=None):
+        totalTime = utils.format_time(time.time() - self._start_time)        
 
         self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
         self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
 	
-	if self.log_file is not None:
-		self.log_file.close()
-		self.log_file = None
+        try:
+            if self.log_file_name:
+                self.log_file = open(self.log_file_name, "w")
+
+                self.log_file.write("COPIED_NUMBER=" + str(self._success_count) + "\n")
+                self.log_file.write("TOTAL_NUMBER=" + str(self._currImgIndex) + "\n")
+                self.log_file.write("DATA_AMOUNT='" + utils.sizeof_fmt(self._bytes_copied) + "'\n")
+                self.log_file.write("DESTINATION_PATH='" + self._destPath + "'\n")
+                self.log_file.write("FREE_SPACE_IN_DESTINATION_PATH='" + utils.sizeof_fmt(utils.get_free_space(self._destPath)) + "'\n")
+                self.log_file.write("DURATION_TIME='" + totalTime + "'\n")
+                self.log_file.write("CANCELED=" + str(canceled) + "\n")
+                self.log_file.write("ERROR=" + str(error) + "\n")
+
+                self.log_file.close()		 
+                
+        except Exception as ex:
+            utils.error(ex)	
+
+		
 
     @classmethod
     def do(cls, src_path, dest_path, move_destination, diagnostics, move, log_file):
@@ -275,7 +299,7 @@ class PictureArchiver:
         obj._diagnostics = diagnostics
         obj._move_files = move        
         obj._move_destination = move_destination
-	obj.log_file_name =  log_file
+        obj.log_file_name =  log_file
 
         if obj._diagnostics:
             obj._log("WARING: Diagnostics mode activated.")
