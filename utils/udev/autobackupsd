@@ -7,7 +7,7 @@ HOME_LOG_FOLDER="$HOME/.autobackupsd"
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 
 # Cancel any pending shutdown
-shutdown -c
+shutdown -c > /dev/null 2>&1
 
 led() {
   if [ -w /proc/acpi/nuc_led ]
