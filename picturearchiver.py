@@ -284,7 +284,7 @@ class PictureArchiver:
                 self.log_file.write("FREE_SPACE_IN_DESTINATION_PATH='" + utils.sizeof_fmt(utils.get_free_space(self._destPath)) + "'\n")
                 self.log_file.write("DURATION_TIME='" + totalTime + "'\n")
                 self.log_file.write("CANCELED=" + str(canceled) + "\n")
-                self.log_file.write("ERROR=" + str(error) + "\n")
+                self.log_file.write("ERROR='" + str(error) + "'\n")
 
                 self.log_file.close()		 
                 
