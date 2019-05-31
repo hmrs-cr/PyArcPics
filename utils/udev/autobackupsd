@@ -62,7 +62,7 @@ notification() {
   fi
   
   MESSAGE=$(printf "$1")  
-  curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=*SD Backup:* $MESSAGE" > /dev/null 2>&1
+  curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=*SD Backup:* $MESSAGE" > /dev/null 2>&1 &
 }
 
 create-log() {
