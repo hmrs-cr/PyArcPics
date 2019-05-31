@@ -1,3 +1,0 @@
-#!/bin/bash
-
-echo  'ring,0,blink_fast,red' |  tee /proc/acpi/nuc_led > /dev/null
