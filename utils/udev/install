@@ -38,7 +38,7 @@ ln -s "$(readlink -f ./autobackupsd)" "$INSTALL_DIR/autobackupsd"
 ln -s "$(readlink -f ./sdremoved)" "$INSTALL_DIR/sdremoved"
 mkfifo /var/run/autobackupsd.pipe
 
-if [ -d "/etc/init"]
+if [ -d "/etc/init" ]
 then
     cp ./autobackupsd.service /etc/init/autobackupsd
 fi
