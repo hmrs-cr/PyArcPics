@@ -6,34 +6,13 @@ LOG_FOLDER='/var/log/autobackupsd'
 HOME_LOG_FOLDER="$HOME/.autobackupsd"
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 PIPE='/var/run/autobackupsd.pipe'
+NOTIFY=false
 
-if [ "$1" == "-udev" ]
+
+if [ -f /etc/autobackupsd ]
 then
-  # Cancel any pending shutdown
-  shutdown -c > /dev/null 2>&1
-
-  # Must be 1
-  if [ "$ID_DRIVE_FLASH_SD" != "1" ]
-  then
-    echo "Device is not a SD Card: $DEVNAME ."
-    exit 1 # Exit silently.
-  fi
-
-  # Must be partition
-  if [ "$DEVTYPE" != "partition" ]
-  then
-    echo "Device is not a partition: $DEVTYPE."
-    exit 1
-  fi
-  
-  echo "$DEVNAME" > $PIPE
-  
-  exit 0
-fi
-
-if [ "$1" == "-serv" ]
-then
-  
+  echo "Reading config: /etc/autobackupsd"
+  source /etc/autobackupsd
 fi
 
 led() {
@@ -53,10 +32,11 @@ error () {
 }
 
 check_exit_code() {
-  if [ "$?" != "0" ]
+  EXIT_CODE=$?
+  if [ "$EXIT_CODE" != "0" ]
   then     
      error "Error $1"
-     exit $?
+     [ "$2" == "noexit" ] && return $EXIT_CODE || exit $EXIT_CODE
   fi
 }
 
@@ -66,6 +46,9 @@ info() {
 }
 
 notification() {
+  
+  [ $NOTIFY == false ] && return 0
+
   if [ -z "$TELEGRAM_BOT_KEY" ]
   then
       echo "No TELEGRAM_BOT_KEY"
@@ -82,95 +65,179 @@ notification() {
   curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=*SD Backup:* $MESSAGE" > /dev/null 2>&1
 }
 
-[ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
-if  [ ! -w "$LOG_FOLDER" ]
-then
-  LOG_FOLDER="$HOME_LOG_FOLDER"
-  [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
-fi
-
-LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
-if [[ ! $- == *i* ]]
-then  
-  if [ -w "$LOG_FOLDER" ]
-  then    
-    echo "Using log file '$LOG_FILE'"
-    exec >> $LOG_FILE
-    exec 2>&1
-  fi
-fi
-
-if [ -f /etc/autobackupsd ]
-then
-  echo "Reading config: /etc/autobackupsd"
-  source /etc/autobackupsd
-fi
-
-if [ "$1" ]
-then
-  DEVNAME="$1"
-fi
-
-# Must be a block device
-if [ ! -b "$DEVNAME" ]
-then  
-  echo "Device '$DEVICENAME' is not a block device"
-  exit 1
-fi
-
-MOUNT_POINT=$(lsblk -o MOUNTPOINT -nr "$DEVNAME" | xargs)
-
-ALREADY_MOUNTED=true
-if [ -z "$MOUNT_POINT" ]
-then
-  echo "$DEVNAME not yet mounted. Mounting..."
-  # Create dir if not exists
-  MOUNT_POINT="$DEFAULT_MOUNT_POINT"
-  if [ ! -d "$MOUNT_POINT" ]
+create-log() {
+  [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER" 2> /dev/null
+  if  [ ! -w "$LOG_FOLDER" ]
   then
-    mkdir "$MOUNT_POINT"
+    LOG_FOLDER="$HOME_LOG_FOLDER"
+    [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
   fi
-  # Mount device
-  mount "$DEVNAME" "$MOUNT_POINT"
-  check_exit_code "Mounting $DEVNAME"
-  ALREADY_MOUNTED=false
-else 
-  echo "$DEVNAME mounted in $MOUNT_POINT"
-fi
 
-if [ ! -d "$MOUNT_POINT/DCIM" ]
-then
-  echo "SD Card does not contains a picture folder: $MOUNT_POINT/DCIM"  
-  exit 1
-fi
+  LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
+}
 
-if [ -w "$LOG_FOLDER" ]
-then
-  LOG_RESULTS_FILE=${LOG_FILE/.log/.result}
-fi
+redirect-output() {
+  if [ -w "$LOG_FOLDER" ]
+    then    
+      echo "Using log file '$LOG_FILE'"
+      exec >> $LOG_FILE
+      exec 2>&1
+  fi
+}
 
-info "Starting backup from $MOUNT_POINT/DCIM"
+backup-device() {
+  
+  if [ "$1" ]
+  then
+    DEVNAME="$1"
+  fi
 
-led "70" "fade_medium" "green"
+  if [ -z "$DEVNAME" ]
+  then
+    error "No backup device specified."
+    return 1
+  fi
 
-$BACKUP_COMMAND -l "$LOG_RESULTS_FILE" "$MOUNT_POINT/DCIM"
-check_exit_code "Backup script"
+  # Must be a block device
+  if [ ! -b "$DEVNAME" ]
+  then  
+    error "Device '$DEVNAME' is not a block device"
+    return 1
+  fi
 
-led "70" "fade_fast" "green"
+  MOUNT_POINT=$(lsblk -o MOUNTPOINT -nr "$DEVNAME" | xargs)
 
-if [ "$ALREADY_MOUNTED" == false ] 
-then
-  echo "Unmounting $DEVNAME"
-  umount "$DEVNAME"
-fi
+  ALREADY_MOUNTED=true
+  if [ -z "$MOUNT_POINT" ]
+  then
+    echo "$DEVNAME not yet mounted. Mounting..."
+    # Create dir if not exists
+    MOUNT_POINT="$DEFAULT_MOUNT_POINT"
+    if [ ! -d "$MOUNT_POINT" ]
+    then
+      mkdir "$MOUNT_POINT"
+    fi
+    # Mount device
+    mount "$DEVNAME" "$MOUNT_POINT"
+    check_exit_code "Mounting $DEVNAME" noexit
+    [ "$?" != "0" ] && return $?
+    
+    ALREADY_MOUNTED=false
+  else 
+    echo "$DEVNAME mounted in $MOUNT_POINT"
+  fi
 
-if [ -f "$LOG_RESULTS_FILE" ]
-then
-  source "$LOG_RESULTS_FILE"
-  notification "\n\n*Done!*\n\n $COPIED_NUMBER of $TOTAL_NUMBER ($DATA_AMOUNT) files copied to $DESTINATION_PATH in $DURATION_TIME.\n$FREE_SPACE_IN_DESTINATION_PATH available."
-  echo "Done!"
-else
-  info "Done!"
-fi
-led "100" "none" "green"
+  if [ ! -d "$MOUNT_POINT/DCIM" ]
+  then
+    echo "SD Card does not contains a picture folder: $MOUNT_POINT/DCIM"  
+    return 1
+  fi
 
+  if [ -w "$LOG_FOLDER" ]
+  then
+    LOG_RESULTS_FILE=${LOG_FILE/.log/.result}
+  fi
+
+  info "Starting backup from $MOUNT_POINT/DCIM"
+
+  led "70" "fade_medium" "green"
+
+  $BACKUP_COMMAND -l "$LOG_RESULTS_FILE" "$MOUNT_POINT/DCIM"
+  check_exit_code "Backup script" noexit
+  [ "$?" != "0" ] && return $?
+
+  led "70" "fade_fast" "green"
+
+  if [ "$ALREADY_MOUNTED" == false ] 
+  then
+    echo "Unmounting $DEVNAME"
+    umount "$DEVNAME"
+  fi
+
+  if [ -f "$LOG_RESULTS_FILE" ]
+  then
+    source "$LOG_RESULTS_FILE"
+    notification "\n\n*Done!*\n\n $COPIED_NUMBER of $TOTAL_NUMBER ($DATA_AMOUNT) files copied to $DESTINATION_PATH in $DURATION_TIME.\n$FREE_SPACE_IN_DESTINATION_PATH available."
+    echo "Done!"
+  else
+    info "Done!"
+  fi
+  led "100" "none" "green"
+
+  return 0
+}
+
+write-pipe() {
+  # Cancel any pending shutdown
+  shutdown -c > /dev/null 2>&1
+
+  [ ! -p "$PIPE" ] && mkfifo "$PIPE"  
+
+  # Must be a block device
+  if [ ! -b "$DEVNAME" ]
+  then    
+    error "Device '$DEVNAME' is not a block device"
+    exit 1
+  fi
+
+  # Must be 1
+  if [ "$ID_DRIVE_FLASH_SD" != "1" ]
+  then
+    error "Device is not a SD Card: '$DEVNAME' ."
+    exit 1 # Exit silently.
+  fi
+
+  # Must be partition
+  if [ "$DEVTYPE" != "partition" ]
+  then
+    error "Device is not a partition: '$DEVTYPE'."
+    exit 1
+  fi
+  
+  echo "Writing $DEVNAME to $PIPE"
+  echo "$DEVNAME" > $PIPE
+  
+  exit 0
+}
+
+read-pipe() {
+  
+  while [ ! -p "$PIPE" ] 
+  do
+    sleep 1
+  done 
+
+  echo "Reading from FIFO: $PIPE"
+
+  while true
+  do
+      if read line <$PIPE; then
+          if [[ "$line" == 'stop' ]]; then
+              echo "Stoping..."
+              break
+          fi
+
+          create-log
+          redirect-output
+
+          backup-device $line          
+      fi
+  done
+
+  exit 0
+}
+
+# Entry point
+create-log
+case $1 in
+  "--udev")    
+    write-pipe
+    ;;
+  "--daemon")
+    NOTIFY=true        
+    read-pipe
+    ;;
+  *)    
+    backup-device $1
+  ;;
+esac
