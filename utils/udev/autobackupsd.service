@@ -1,0 +1,17 @@
+author "hmrs.cr"
+description "Auto backup SD cards service"
+version "1.0"
+
+start on started networking
+stop on runlevel [!2345]
+
+env APPUSER="root"
+env APPDIR="/usr/local/bin"
+env APPBIN="autobackupsd"
+env APPARGS="--daemon"
+
+respawn
+
+script
+  exec su - $APPUSER -c "$APPDIR/$APPBIN $APPARGS"
+end script
