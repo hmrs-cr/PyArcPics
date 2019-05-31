@@ -5,7 +5,7 @@ DEFAULT_MOUNT_POINT='/media/autobackupsd'
 LOG_FOLDER='/var/log/autobackupsd'
 HOME_LOG_FOLDER="$HOME/.autobackupsd"
 BACKUP_COMMAND='/usr/local/bin/arcpics'
-PIPE='/var/run/autobackupsd.pipe'
+PIPE='/tmp/autobackupsd.pipe'
 NOTIFY=false
 
 
@@ -83,6 +83,14 @@ redirect-output() {
       exec >> $LOG_FILE
       exec 2>&1
   fi
+}
+
+sdremoved() {
+  if [ -z "$(who)" ]
+  then
+     shutdown -P
+  fi
+  led "0" "fade_medium" "green"
 }
 
 backup-device() {
@@ -171,7 +179,11 @@ write-pipe() {
   # Cancel any pending shutdown
   shutdown -c > /dev/null 2>&1
 
-  [ ! -p "$PIPE" ] && mkfifo "$PIPE"  
+  if [ ! -p "$PIPE" ] 
+  then 
+    echo "$PIPE not found. Is daemon running?"
+    exit 1
+  fi
 
   # Must be a block device
   if [ ! -b "$DEVNAME" ]
@@ -194,7 +206,13 @@ write-pipe() {
     exit 1
   fi
   
-  echo "Writing $DEVNAME to $PIPE"
+  $line = $DEVNAME
+  if [ "$1" ] 
+  then
+    line="$1"
+  fi
+  
+  echo "Writing $line to $PIPE"
   echo "$DEVNAME" > $PIPE
   
   exit 0
@@ -202,25 +220,27 @@ write-pipe() {
 
 read-pipe() {
   
-  while [ ! -p "$PIPE" ] 
-  do
-    sleep 1
-  done 
+  [ ! -p "$PIPE" ] && mkfifo "$PIPE" 
 
   echo "Reading from FIFO: $PIPE"
 
   while true
   do
       if read line <$PIPE; then
-          if [[ "$line" == 'stop' ]]; then
-              echo "Stoping..."
+          case "$line" in
+            'stop')
+              echo "Stopping..."
               break
-          fi
-
-          create-log
-          redirect-output
-
-          backup-device $line          
+              ;;
+            'sdremoved')
+              sdremoved
+              ;;
+            *)
+              create-log
+              redirect-output
+              backup-device $line
+              ;;
+          esac          
       fi
   done
 
@@ -231,7 +251,7 @@ read-pipe() {
 create-log
 case $1 in
   "--udev")    
-    write-pipe
+    write-pipe $2
     ;;
   "--daemon")
     NOTIFY=true        
