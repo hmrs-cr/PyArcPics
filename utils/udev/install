@@ -9,8 +9,11 @@ then
     rm "$INSTALL_DIR/autobackupsd"    
     rm "$INSTALL_DIR/sdremoved"
     rm "/etc/init/autobackupsd"
-    rm /var/run/autobackupsd.pipe
-    
+        
+    if [ -p /var/run/autobackupsd.pipe ]
+    then
+        rm /var/run/autobackupsd.pipe
+    fi
 
     if [ -f "/etc/init/autobackupsd.conf" ]
     then    
@@ -36,7 +39,6 @@ fi
 ln -s "$(readlink -f ../../main_archivepics.py)" "$INSTALL_DIR/arcpics"
 ln -s "$(readlink -f ./autobackupsd)" "$INSTALL_DIR/autobackupsd"
 ln -s "$(readlink -f ./sdremoved)" "$INSTALL_DIR/sdremoved"
-mkfifo /var/run/autobackupsd.pipe
 
 if [ -d "/etc/init" ]
 then
