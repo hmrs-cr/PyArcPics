@@ -12,6 +12,7 @@ then
     
     if [ -f "/lib/systemd/system/autobackupsd.service" ]
     then    
+        systemctl disable autobackupsd
         rm /lib/systemd/system/autobackupsd.service
     fi
 
@@ -37,6 +38,8 @@ ln -s "$(readlink -f ./autobackupsd)" "$INSTALL_DIR/autobackupsd"
 if [ -d "/lib/systemd/system" ]
 then
     cp ./autobackupsd.service /lib/systemd/system
+    systemctl enable autobackupsd
+    systemctl start autobackupsd
 fi
 
 if [ -d "/etc/udev/rules.d" ]

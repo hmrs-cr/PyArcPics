@@ -197,13 +197,6 @@ handle-udev() {
     exit 1
   fi
 
-  # Must be a block device
-  if [ ! -b "$DEVNAME" ]
-  then    
-    error "Device '$DEVNAME' is not a block device"
-    exit 1
-  fi
-
   # Must be 1
   if [ "$ID_DRIVE_FLASH_SD" != "1" ]
   then
@@ -211,11 +204,21 @@ handle-udev() {
     exit 1 # Exit silently.
   fi
 
-  # Must be partition
-  if [ "$DEVTYPE" != "partition" ]
+  if [ "$ACTION" != "remove"  ]
   then
-    error "Device is not a partition: '$DEVTYPE'."
-    exit 1
+    # Must be a block device
+    if [ ! -b "$DEVNAME" ]
+    then    
+      error "Device '$DEVNAME' is not a block device"
+      exit 1
+    fi  
+
+    # Must be partition
+    if [ "$DEVTYPE" != "partition" ]
+    then
+      error "Device is not a partition: '$DEVTYPE'."
+      exit 1
+    fi
   fi
   
   line=$DEVNAME
