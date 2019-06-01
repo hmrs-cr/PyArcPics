@@ -1,0 +1,37 @@
+#!/bin/bash
+
+FILE_NAME=$1
+BACKUP_DIR='/media/hm/MainStorage/Fotos'
+
+if [ ! -f "$FILE_NAME" ]
+then
+  echo "$FILE_NAME is not a valid file."
+  exit 1
+fi
+
+DATE=$(exiftool -d "%Y-%m-%d"  -T -TAG -DateTimeOriginal "$FILE_NAME")
+
+if [ ${#DATE} -lt 10 ]
+then
+  echo "$FILE_NAME: No exif date found. using file create date"  >&2
+  DATE=$(exiftool -d "%Y-%m-%d"  -T -TAG -FileCreateDate "$FILE_NAME")
+fi
+
+DATE=$(echo ${DATE/-/} | xargs)
+
+while IFS='-' read -ra ADDR; do
+      YEAR=${ADDR[0]}
+      MONTH=${ADDR[1]}
+      DAY=${ADDR[2]}
+ done <<< "$DATE"
+
+BASE_FILE_NAME=$(basename ${FILE_NAME%.*})
+BACKUP_PATH="$BACKUP_DIR/$YEAR/$MONTH/$DATE/$BASE_FILE_NAME)"
+ls "$BACKUP_PATH*" > /dev/null 2>&1
+if [ $? == 0 ]
+then
+  echo "$FILE_NAME"
+else 
+  echo "No backup: $FILE_NAME" >&2
+fi
+
