@@ -1,0 +1,10 @@
+[Unit]
+Description=Sd Auto Backup Service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/autobackupsd --daemon
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
