@@ -93,7 +93,7 @@ sdremoved() {
   then
      shutdown -P
   fi
-  led "0" "fade_medium" "green"
+  led "0" "none" "off"
 }
 
 backup-device() {
