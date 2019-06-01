@@ -10,9 +10,9 @@ then
     rm "$INSTALL_DIR/sdremoved"
     rm "/etc/init/autobackupsd"
     
-    if [ -f "/etc/init/autobackupsd.conf" ]
+    if [ -f "/lib/systemd/system/autobackupsd.service" ]
     then    
-        rm /etc/init/autobackupsd.conf
+        rm /lib/systemd/system/autobackupsd.service
     fi
 
     if [ -f "/etc/udev/rules.d/99-autobackupsd.rules" ]
@@ -34,9 +34,9 @@ fi
 ln -s "$(readlink -f ../../main_archivepics.py)" "$INSTALL_DIR/arcpics"
 ln -s "$(readlink -f ./autobackupsd)" "$INSTALL_DIR/autobackupsd"
 
-if [ -d "/etc/init" ]
+if [ -d "/lib/systemd/system" ]
 then
-    cp ./autobackupsd.conf /etc/init/
+    cp ./autobackupsd.service /lib/systemd/system
 fi
 
 if [ -d "/etc/udev/rules.d" ]
