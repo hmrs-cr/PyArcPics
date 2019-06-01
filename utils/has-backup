@@ -9,12 +9,12 @@ then
   exit 1
 fi
 
-DATE=$(exiftool -d "%Y-%m-%d"  -T -TAG -DateTimeOriginal "$FILE_NAME")
+DATE=$(exiftool -d "%Y-%m-%d"  -T -TAG -DateTimeOriginal "$FILE_NAME" 2> /dev/null)
 
 if [ ${#DATE} -lt 10 ]
 then
   echo "$FILE_NAME: No exif date found. using file create date"  >&2
-  DATE=$(exiftool -d "%Y-%m-%d"  -T -TAG -FileCreateDate "$FILE_NAME")
+  DATE=$(exiftool -d "%Y-%m-%d"  -T -TAG -FileCreateDate "$FILE_NAME"  2> /dev/null)
 fi
 
 DATE=$(echo ${DATE/-/} | xargs)
@@ -26,12 +26,12 @@ while IFS='-' read -ra ADDR; do
  done <<< "$DATE"
 
 BASE_FILE_NAME=$(basename ${FILE_NAME%.*})
-BACKUP_PATH="$BACKUP_DIR/$YEAR/$MONTH/$DATE/$BASE_FILE_NAME)"
+BACKUP_PATH="$BACKUP_DIR/$YEAR/$MONTH/$DATE/$BASE_FILE_NAME"
 ls "$BACKUP_PATH*" > /dev/null 2>&1
 if [ $? == 0 ]
 then
   echo "$FILE_NAME"
 else 
-  echo "No backup: $FILE_NAME" >&2
+  echo "No backup: $FILE_NAME > $BACKUP_PATH" >&2
 fi
 
