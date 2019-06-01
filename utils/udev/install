@@ -40,6 +40,7 @@ then
     cp ./autobackupsd.service /lib/systemd/system
     systemctl enable autobackupsd
     systemctl start autobackupsd
+    systemctl restart autobackupsd
 fi
 
 if [ -d "/etc/udev/rules.d" ]
