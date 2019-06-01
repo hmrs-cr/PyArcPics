@@ -4,8 +4,6 @@
 
 # Settings
 DEFAULT_MOUNT_POINT='/media/autobackupsd'
-LOG_FOLDER='/var/log/autobackupsd'
-HOME_LOG_FOLDER="$HOME/.autobackupsd"
 BACKUP_COMMAND='/usr/local/bin/arcpics'
 PIPE="$TMPDIR/autobackupsd.pipe"
 NOTIFY=false
@@ -67,26 +65,6 @@ notification() {
   curl -m 5 "https://api.telegram.org/bot$TELEGRAM_BOT_KEY/sendMessage?parse_mode=Markdown&chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=*SD Backup:* $MESSAGE" > /dev/null 2>&1 &
 }
 
-create-log() {
-  [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER" 2> /dev/null
-  if  [ ! -w "$LOG_FOLDER" ]
-  then
-    LOG_FOLDER="$HOME_LOG_FOLDER"
-    [ -d "$LOG_FOLDER" ] || mkdir "$LOG_FOLDER"
-  fi
-
-  LOG_FILE="$LOG_FOLDER/$(date +%F-%T).log"
-}
-
-redirect-output() {
-  if [ -w "$LOG_FOLDER" ]
-    then    
-      echo "Using log file '$LOG_FILE'"
-      exec >> $LOG_FILE
-      exec 2>&1
-  fi
-}
-
 sdremoved() {
   echo 'SD Removed.'
   if [ -z "$(who)" ]
@@ -144,10 +122,7 @@ backup-device() {
     return 1
   fi
 
-  if [ -w "$LOG_FOLDER" ]
-  then
-    LOG_RESULTS_FILE=${LOG_FILE/.log/.result}
-  fi
+  LOG_RESULTS_FILE="$TMPDIR/autobackupsd-$(date +%F-%T).result"
 
   info "Starting backup from $MOUNT_POINT/DCIM"
 
@@ -253,8 +228,6 @@ start-read-bucle() {
               sdremoved
               ;;
             *)
-              create-log
-              #redirect-output
               backup-device $line
               ;;
           esac          
@@ -265,7 +238,6 @@ start-read-bucle() {
 }
 
 # Entry point
-create-log
 case $1 in
   "--udev")        
     handle-udev $2
