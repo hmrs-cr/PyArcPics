@@ -27,7 +27,7 @@ while IFS='-' read -ra ADDR; do
 
 BASE_FILE_NAME=$(basename ${FILE_NAME%.*})
 BACKUP_PATH="$BACKUP_DIR/$YEAR/$MONTH/$DATE/$BASE_FILE_NAME"
-ls "$BACKUP_PATH*" > /dev/null 2>&1
+ls $BACKUP_PATH* > /dev/null 2>&1
 if [ $? == 0 ]
 then
   echo "$FILE_NAME"
