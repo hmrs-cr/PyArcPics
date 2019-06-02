@@ -143,7 +143,7 @@ backup-device() {
   if [ -f "$LOG_RESULTS_FILE" ]
   then
     source "$LOG_RESULTS_FILE"
-    notification "\n\n*Done!*\n\n $COPIED_NUMBER of $TOTAL_NUMBER ($DATA_AMOUNT) files copied to $DESTINATION_PATH in $DURATION_TIME.\n$FREE_SPACE_IN_DESTINATION_PATH available."
+    notification " *Done!*\n\n $COPIED_NUMBER of $TOTAL_NUMBER ($DATA_AMOUNT) files copied to $DESTINATION_PATH in $DURATION_TIME.\n$FREE_SPACE_IN_DESTINATION_PATH available."
     echo "Done!"
   else
     info "Done!"
