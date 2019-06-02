@@ -274,7 +274,6 @@ class PictureArchiver:
 
         self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
         self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
-	
 
         try:
             if self.log_file_name:
