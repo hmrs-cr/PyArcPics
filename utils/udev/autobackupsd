@@ -148,6 +148,9 @@ backup-device() {
   else
     info "Done!"
   fi
+
+  #docker exec  ae25402ebe4c /bin/bash -c "php /var/www/html/cron/index_filenames.php /user-files/Fotos"
+
   led "100" "none" "green"
 
   return 0
@@ -175,7 +178,7 @@ handle-udev() {
   # Must be 1
   if [ "$ID_DRIVE_FLASH_SD" != "1" ]
   then
-    error "Device is not a SD Card: '$DEVNAME' ."
+    echo "Device is not a SD Card: '$DEVNAME' ."
     exit 1 # Exit silently.
   fi
 

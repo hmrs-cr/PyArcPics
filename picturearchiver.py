@@ -25,8 +25,9 @@ class PictureArchiver:
         self._move_destination = None
         self._include_video = False
         self.onAdvance = None
-	self.log_file_name = None
-	self.log_file = None
+        self.log_file_name = None
+        self.log_file = None
+        self.folder_list = {}
 
     def _change_owner(self, path):
         new_owner = os.environ.get(utils.PA_NEW_OWNER)
@@ -203,7 +204,8 @@ class PictureArchiver:
                         self._move_to_move_destination(src_file, dest_folder_name)
                         continue
 
-                self._create_folder_if_needed(dest_folder)                
+                self._create_folder_if_needed(dest_folder)
+                self.folder_list[dest_folder_name] = self.folder_list.get(dest_folder_name, 0) + 1
 
                 if move:                    
                     self._log("MOVING: '" + src_file + "' to '" + dest_file + "'")                    
@@ -273,6 +275,7 @@ class PictureArchiver:
         self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
         self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
 	
+
         try:
             if self.log_file_name:
                 self.log_file = open(self.log_file_name, "w")
@@ -285,6 +288,7 @@ class PictureArchiver:
                 self.log_file.write("DURATION_TIME='" + totalTime + "'\n")
                 self.log_file.write("CANCELED=" + str(canceled) + "\n")
                 self.log_file.write("ERROR='" + str(error) + "'\n")
+                self.log_file.write("FOLDERS='" + ";".join(self.folder_list.keys()) + "'\n")
 
                 self.log_file.close()		 
                 
