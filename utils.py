@@ -227,44 +227,64 @@ def find_camera_folders(folder="DCIM"):
     
     return result
 
+class FolderOptions:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
 
-def read_backup_folder_options(options_file_name):
+    def __str__(self):
+        return str(self.__dict__)
+
+
+def read_backup_folder_options(options_file_name=""):
 
     options = {
-        "priority": 100,
-        "subfolder": None,
-        "dest_path": os.path.dirname(options_file_name),
-        "diagnostics": False,
-        "move": False,
-        "min_size": 32,
-        "user": None,
-        "group": None,
-        "mod": None
+        "priority": 100, # Priority of the folder
+        "subfolder": None, # Subfolder in main path
+        "dest_path": os.path.dirname(options_file_name), # Full backup folder path
+        "diagnostics": False, # Diganostics mode (CL)
+        "move": False, # Move files insted of copy (CL)
+        "min_size": 32, # Min size in MB in des_path
+        "user": None, # Owner of the files in dest_path
+        "group": None, # Group of the files in dest_path
+        "mod": None, # File permissions of files in dest_path
+        "post_proc_cmd": None, # Shell command to execute in folders after backup. Execute one time for all folders if {{}} found in args or one time for every folder if {} found.
+        "post_proc_args": "{}", # Arguments to post_proc_cmd {{}} is replaced with a list of all folders, {} is replaced with current folder only.
+        "move_destination": None, # If this is set to a valid path: after the original file is copied to the main destination it will be moved to this location. (CL)
+        "log_file": None,  # If set will save statics after all files are copied. (CL)
+        "initialized": False,
     }
-
-    try:
-        config = json.load(open(options_file_name))
-        for key, value in config.iteritems():
-            options[key] = value
-
-        if options["subfolder"] is not None:
-            options["dest_path"] = os.path.join(options["dest_path"] , options["subfolder"])
-    except:
-        pass
     
-    return options
+    optionsObj = FolderOptions(**options)
+    if options_file_name:
+        try:        
+            if options_file_name:
+                config = json.load(open(options_file_name))
+                
+                for key, value in config.iteritems():
+                    options[key] = value
+
+                optionsObj = FolderOptions(**options)        
+
+                if optionsObj.subfolder is not None:
+                    optionsObj.dest_path = os.path.join(optionsObj.dest_path , optionsObj.subfolder)
+
+                optionsObj.initialized = True
+        except:     
+            pass
+        
+    return optionsObj
 
 
 def get_backup_folders(config_file_name=primary_backup_marker):
 
     def sortPriority(val):
-        return val["priority"]
+        return val.priority
 
-    drives = get_drive_list()    
+    drives = get_drive_list()        
     folders = []
     for drive in drives:
         if drive == "/":
-            continue
+            continue        
         
         config_file_path = os.path.join(drive, config_file_name)        
         if os.path.isfile(config_file_path):
@@ -275,24 +295,25 @@ def get_backup_folders(config_file_name=primary_backup_marker):
     return folders
         
 
-def find_backup_folder(folder=primary_backup_marker):       
-    for folder in get_backup_folders(folder):        
-        if os.path.isdir(folder["dest_path"]):
-            min_size = folder["min_size"]
+
+def find_backup_folder_options(folder=primary_backup_marker):       
+    for folder in get_backup_folders(folder):                  
+        if os.path.isdir(folder.dest_path):
+            min_size = folder.min_size
             if min_size is not None:
-                drive_size = get_free_space_in_mb(folder["dest_path"])                
+                drive_size = get_free_space_in_mb(folder.dest_path)
                 if drive_size < int(min_size): 
-                    error("No enough space in {path}.".format(path=folder["dest_path"]))
+                    error("No enough space in {path}.".format(path=folder.dest_path))
                     continue               
 
-            if folder["user"] is not None:
-                os.environ[PA_NEW_OWNER] = folder["user"]
-            if folder["group"] is not None:
-                os.environ[PA_NEW_GROUP] = folder["group"]
-            if folder["mod"] is not None:
-                os.environ[PA_NEW_MODE] = folder["mod"]
-
-            return folder["dest_path"]
+            if folder.user is not None:
+                os.environ[PA_NEW_OWNER] = folder.user
+            if folder.group is not None:
+                os.environ[PA_NEW_GROUP] = folder.group
+            if folder.mod is not None:
+                os.environ[PA_NEW_MODE] = folder.mod
+            
+            return folder
         
     return None
 

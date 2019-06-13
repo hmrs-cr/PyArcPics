@@ -5,7 +5,7 @@ import shutil
 import time
 import utils
 import datetime
-
+import subprocess
 
 # noinspection PyBroadException
 class PictureArchiver:
@@ -28,6 +28,9 @@ class PictureArchiver:
         self.log_file_name = None
         self.log_file = None
         self.folder_list = {}
+        self.post_proc_cmd = None
+        self.post_proc_args = None
+        self.enable_post_proc_cmd = False
 
     def _change_owner(self, path):
         new_owner = os.environ.get(utils.PA_NEW_OWNER)
@@ -268,15 +271,21 @@ class PictureArchiver:
             pass
 
         
+    def _execute_post_proc_cmd(self, command):
+        
+        # Do not execute arbitrary commands from world writable config file
+        # by default, it´s dangerous
+        #if self.enable_post_proc_cmd:
+        #    self._log("Excuting command: " + command)
+        #    subprocess.call(rsync_cmd)
+        #else:
+        self._log("Command not executed (disabled): " + command)
 
     def _finish(self, canceled=False, error=None):
         totalTime = utils.format_time(time.time() - self._start_time)        
-
-        self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
-        self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
-
         try:
             if self.log_file_name:
+                self._log("Saving result logs: " + os.path.abspath(self.log_file_name))
                 self.log_file = open(self.log_file_name, "w")
 
                 self.log_file.write("COPIED_NUMBER=" + str(self._success_count) + "\n")
@@ -288,25 +297,41 @@ class PictureArchiver:
                 self.log_file.write("CANCELED=" + str(canceled) + "\n")
                 self.log_file.write("ERROR='" + str(error) + "'\n")
                 self.log_file.write("FOLDERS='" + ";".join(self.folder_list.keys()) + "'\n")
+                if self._diagnostics:
+                    self.log_file.write("DIAGNOSTICS=True\n")
 
                 self.log_file.close()		 
                 
         except Exception as ex:
             utils.error(ex)	
+                
+        if self.post_proc_cmd and self.post_proc_args:       
+            if '{{}}' in self.post_proc_args:
+                for folder in self.folder_list.keys():
+                    shell_command = self.post_proc_cmd + " " +  self.post_proc_args.replace("{{}}", folder)
+                    self._execute_post_proc_cmd(shell_command)                
+            else:
+                shell_command = self.post_proc_cmd + " " + self.post_proc_args.replace("{}", " ".join(self.folder_list.keys()))
+                self._execute_post_proc_cmd(shell_command)
 
+        self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
+        self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
 		
 
     @classmethod
-    def do(cls, src_path, dest_path, move_destination, diagnostics, move, log_file):
-        obj = cls(src_path, dest_path)
-        obj._diagnostics = diagnostics
-        obj._move_files = move        
-        obj._move_destination = move_destination
-        obj.log_file_name =  log_file
+    def do(cls, src_path, options):        
+        obj = cls(src_path, options.dest_path)
+        obj._diagnostics = options.diagnostics
+        obj._move_files = options.move        
+        obj._move_destination = options.move_destination
+        obj.log_file_name = options.log_file
+
+        obj.post_proc_cmd = options.post_proc_cmd
+        obj.post_proc_args = options.post_proc_args
 
         if obj._diagnostics:
             obj._log("WARING: Diagnostics mode activated.")
-        obj.archive_pictures()
+        obj.archive_pictures()   
 
     @classmethod
     def archive(cls, source, destination_options):
