@@ -156,7 +156,7 @@ class PictureArchiver:
     def _walk_dir(self, root_dir):
 
         if os.path.isdir(root_dir):
-            dir_list = os.listdir(root_dir)
+            dir_list = filter(lambda d: not d.startswith('@'), os.listdir(root_dir))
             self._imgCount += len(dir_list)
         else:
             self._imgCount = 1
