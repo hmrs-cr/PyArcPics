@@ -52,9 +52,13 @@ if __name__ == "__main__":
     if src_folders is None or src_folders == "ALL":
         src_folders = utils.find_camera_folders() + utils.find_camera_folders("SD Card Imports")    
 
-    if options.destination is not None and options.destination != "AUTO":
-        dest_folder_options = utils.find_backup_folder_options()
-        dest_folder_options.dest_path = unicode(options.destination, "UTF-8")
+    if options.destination is not None and options.destination != "AUTO":        
+        configfilename = os.path.join(options.destination, utils.primary_backup_marker)
+        if os.path.isfile(configfilename):
+            dest_folder_options = utils.read_backup_folder_options(configfilename)
+        else:
+            dest_folder_options = utils.find_backup_folder_options()
+            dest_folder_options.dest_path = unicode(options.destination, "UTF-8")
     else:
         dest_folder_options = utils.find_backup_folder_options(utils.primary_backup_marker)
         if dest_folder_options is None or not dest_folder_options.dest_path:
