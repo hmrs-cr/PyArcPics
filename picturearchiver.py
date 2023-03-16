@@ -24,6 +24,7 @@ class PictureArchiver:
         self._correct_dates_only = False        
         self._move_destination = None
         self._include_video = False
+        self._excludeExt = []
         self.onAdvance = None
         self.log_file_name = None
         self.log_file = None
@@ -92,11 +93,15 @@ class PictureArchiver:
             pass
 
     def _is_valid_backup_file(self, file_name):	
-		if self._include_video:
-			fname, fext = os.path.splitext(file_name)
-			return fext.lower().lstrip(".") in utils.MIME_TYPES.keys()
+        fname, fext = os.path.splitext(file_name)
+        fext = fext.lower().lstrip(".")
+        if self._excludeExt.count > 0 and self._excludeExt.count(fext) > 0:
+            return False
+
+        if self._include_video:            
+            return fext in utils.MIME_TYPES.keys()
 		
-		return utils.is_image(file_name)
+        return utils.is_image(file_name)
 
     @staticmethod
     def get_dest_folder_name(obj_date):
@@ -325,6 +330,8 @@ class PictureArchiver:
         obj._move_files = options.move        
         obj._move_destination = options.move_destination
         obj.log_file_name = options.log_file
+        obj._excludeExt = options.excludeExt if options.excludeExt is not None else []
+
 
         obj.post_proc_cmd = options.post_proc_cmd
         obj.post_proc_args = options.post_proc_args

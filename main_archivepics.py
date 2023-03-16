@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/Library/Frameworks/Python.framework/Versions/2.7/bin/python
 # coding=UTF8
 
 import argparse
@@ -9,6 +9,9 @@ import pwd
 import grp
 from picturearchiver import PictureArchiver
 import utils
+
+#utils.remove_old_pictures('/Volumes/Fotos/Test', 1280000000)
+#exit(1)
 
 DEFAUL_CONFIG = "~/.hmsoft/arcpics.json"
 if __name__ == "__main__":
@@ -67,6 +70,8 @@ if __name__ == "__main__":
     if not isinstance(src_folders, list):
         sys.stderr.write("Source folders in config is not a valid list: " + src_folders + "\n")
         exit(1)
+
+    #print src_folders
     
     newusergroup = ""
     new_owner = os.environ.get(utils.PA_NEW_OWNER)
@@ -82,7 +87,7 @@ if __name__ == "__main__":
             os.environ[utils.PA_NEW_GROUP] = ""
             utils.error(e)
     
-    print dest_folder_options
+    #print dest_folder_options
     print "Backup location:", dest_folder_options.dest_path, newusergroup
     
     for path in src_folders:
