@@ -65,6 +65,13 @@ if __name__ == "__main__":
             sys.stderr.write("Could not determine backup folder\n")
             exit(1)
 
+    min_size = dest_folder_options.min_size
+    if min_size is not None:
+        drive_size = utils.get_free_space_in_mb(dest_folder_options.dest_path)                
+        if drive_size < int(min_size): 
+            utils.error("No enough space in {path}.".format(path=dest_folder_options.dest_path))
+            exit() 
+
     dest_folder_options.log_file = options.log_file
     dest_folder_options.diagnostics = options.diagnostics
     dest_folder_options.move = options.move

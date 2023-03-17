@@ -252,7 +252,9 @@ def read_backup_folder_options(options_file_name=""):
         "move_destination": None, # If this is set to a valid path: after the original file is copied to the main destination it will be moved to this location. (CL)
         "log_file": None,  # If set will save statics after all files are copied. (CL)
         "initialized": False,
-        "excludeExt": []
+        "rotate": False, # If true and the drive is full will delete older pictures to make room for new ones.
+        "excludeExt": [],
+        "excludeOlderThan": None
     }
     
     optionsObj = FolderOptions(**options)
@@ -302,7 +304,7 @@ def find_backup_folder_options(folder=primary_backup_marker):
         if os.path.isdir(folder.dest_path):
             min_size = folder.min_size
             if min_size is not None:
-                drive_size = get_free_space_in_mb(folder.dest_path)
+                drive_size = get_free_space_in_mb(folder.dest_path)                
                 if drive_size < int(min_size): 
                     error("No enough space in {path}.".format(path=folder.dest_path))
                     continue               
@@ -365,7 +367,7 @@ def get_sub_folder(file_name):
 
 def get_free_space(path):
     stats = os.statvfs(path)
-    return (stats[statvfs.F_FRSIZE] * stats[statvfs.F_BFREE])
+    return (stats[statvfs.F_FRSIZE] * stats[statvfs.F_BAVAIL])
 
 def get_free_space_in_mb(path):
     return get_free_space(path) * 0.000001

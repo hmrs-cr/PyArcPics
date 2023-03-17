@@ -1,11 +1,12 @@
 # coding=UTF8
 
+import errno
 import os
 import shutil
 import time
 import utils
 import datetime
-import subprocess
+import datetime
 
 # noinspection PyBroadException
 class PictureArchiver:
@@ -32,6 +33,8 @@ class PictureArchiver:
         self.post_proc_cmd = None
         self.post_proc_args = None
         self.enable_post_proc_cmd = False
+        self._delete_old_pics = False
+        self._excludeOlderThan = None
 
     def _change_owner(self, path):
         new_owner = os.environ.get(utils.PA_NEW_OWNER)
@@ -157,6 +160,7 @@ class PictureArchiver:
 
         if os.path.isdir(root_dir):
             dir_list = filter(lambda d: not d.startswith('@'), os.listdir(root_dir))
+            dir_list.sort()
             self._imgCount += len(dir_list)
         else:
             self._imgCount = 1
@@ -180,28 +184,44 @@ class PictureArchiver:
 
             if not self._is_valid_backup_file(src_file):
                 self._log("SKIPING: '" + src_file + "'")
+                continue            
+
+            try:
+                self.copy(root_dir, src_file, filename)
+            except Exception as exp:                
+                self._error(exp)
                 continue
 
-            src_size = os.path.getsize(src_file)
+    def copy(self, root_dir, src_file, filename):
+        picture_date = utils.get_picture_date(src_file)
+        if not isinstance(picture_date, datetime.datetime):
+            picture_date = datetime.datetime.now()
 
-            picture_date = utils.get_picture_date(src_file)
-            if not isinstance(picture_date, datetime.datetime):
-                picture_date = datetime.datetime.now()
+        if picture_date is None:
+            self._log("SKIPING: '" + src_file + "' Couldn't determine file date")
+            return
+        
+        if self._excludeOlderThan is not None and picture_date < self._excludeOlderThan:
+            self._log("SKIPING: '" + src_file + "' is older than " + self._excludeOlderThan.strftime('%Y-%m-%d %H:%M'))
+            return
+        
+        retries = 5
+        src_size = os.path.getsize(src_file)
+        dest_folder_name = self.get_dest_folder_name(picture_date)
+        dest_folder = os.path.join(self._destPath, dest_folder_name, utils.get_sub_folder(src_file))
+        dest_file = os.path.join(dest_folder, filename)
+        move = self._move_files or src_file.startswith(u"/home/hm/Imágenes/Camara")
 
-            if picture_date is None:
-                self._log("SKIPING: '" + src_file + "' Couldn't determine file date")
-                continue
-
-            dest_folder_name = self.get_dest_folder_name(picture_date)
-
-            dest_folder = os.path.join(self._destPath, dest_folder_name, utils.get_sub_folder(src_file))
-            dest_file = os.path.join(dest_folder, filename)
-            move = self._move_files or src_file.startswith(u"/home/hm/Imágenes/Camara")
+        while retries > 0:
+            retries = retries - 1
+            if self._rotate and (self._delete_old_pics or utils.get_free_space(self._destPath) < src_size):                
+                utils.remove_old_pictures(self._destPath, src_size)
+                self._delete_old_pics = False
 
             try:
                 if os.path.isfile(dest_file) and os.path.samefile(src_file, dest_file):
                     self._log("SKIPING: '" + dest_file + "' Source and destination are the same.")
-                    continue
+                    return
 
                 update = False
                 if os.path.isfile(dest_file):
@@ -210,7 +230,7 @@ class PictureArchiver:
                     if dest_size >= src_size:
                         self._log("SKIPING: '" + dest_file + "' already exists.")
                         self._move_to_move_destination(src_file, dest_folder_name)
-                        continue
+                        return
 
                 self._create_folder_if_needed(dest_folder)
                 self.folder_list[dest_folder_name] = self.folder_list.get(dest_folder_name, 0) + 1
@@ -225,7 +245,7 @@ class PictureArchiver:
                     files_left -= 1
                     if files_left == 0:
                         try:
-                            if not self._diagnostics and os.path.isdir(root_dir):                                
+                            if not self._diagnostics and os.path.isdir(root_dir):
                                 os.rmdir(root_dir)
                         except:
                             self._error("Error removing dir")
@@ -246,9 +266,19 @@ class PictureArchiver:
 
                     self._success_count += 1
 
-            except Exception as exp:
-                self._error(exp)
-                continue                
+                return
+            except IOError as ioerror:                
+                if ioerror.errno == errno.ENOSPC:                    
+                    if self._rotate:
+                        print "WARN: No space left deleting older pictures"
+                        self._delete_old_pics = True
+                        continue
+                    else:
+                        self._error(ioerror)
+                        exit(1)
+                else:
+                    self._error(ioerror)
+                    return
 
     def archive_pictures(self):
 
@@ -330,8 +360,9 @@ class PictureArchiver:
         obj._move_files = options.move        
         obj._move_destination = options.move_destination
         obj.log_file_name = options.log_file
-        obj._excludeExt = options.excludeExt if options.excludeExt is not None else []
-
+        obj._rotate = options.rotate
+        obj._excludeExt = options.excludeExt
+        obj._excludeOlderThan = datetime.datetime.strptime(options.excludeOlderThan, '%Y-%m-%d %H:%M') if options.excludeOlderThan is not None else None
 
         obj.post_proc_cmd = options.post_proc_cmd
         obj.post_proc_args = options.post_proc_args
