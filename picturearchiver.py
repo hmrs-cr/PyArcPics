@@ -214,10 +214,6 @@ class PictureArchiver:
 
         while retries > 0:
             retries = retries - 1
-            if self._rotate and (self._delete_old_pics or utils.get_free_space(self._destPath) < src_size):                
-                utils.remove_old_pictures(self._destPath, src_size)
-                self._delete_old_pics = False
-
             try:
                 if os.path.isfile(dest_file) and os.path.samefile(src_file, dest_file):
                     self._log("SKIPING: '" + dest_file + "' Source and destination are the same.")
@@ -231,6 +227,10 @@ class PictureArchiver:
                         self._log("SKIPING: '" + dest_file + "' already exists.")
                         self._move_to_move_destination(src_file, dest_folder_name)
                         return
+                    
+                if self._rotate and (self._delete_old_pics or utils.get_free_space(self._destPath) < src_size):                
+                    utils.remove_old_pictures(self._destPath, src_size)
+                    self._delete_old_pics = False
 
                 self._create_folder_if_needed(dest_folder)
                 self.folder_list[dest_folder_name] = self.folder_list.get(dest_folder_name, 0) + 1
