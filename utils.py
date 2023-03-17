@@ -243,7 +243,7 @@ def read_backup_folder_options(options_file_name=""):
         "dest_path": os.path.dirname(options_file_name), # Full backup folder path
         "diagnostics": False, # Diganostics mode (CL)
         "move": False, # Move files insted of copy (CL)
-        "min_size": 32, # Min size in MB in des_path
+        "min_size": None, # Min size in MB in des_path
         "user": None, # Owner of the files in dest_path
         "group": None, # Group of the files in dest_path
         "mod": None, # File permissions of files in dest_path
