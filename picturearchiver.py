@@ -176,6 +176,9 @@ class PictureArchiver:
             src_file = os.path.join(root_dir, filename)
 
             if os.path.isdir(src_file):
+                if self._excludeOlderThan is not None and utils.str_to_int(filename, 99999) < self._excludeOlderThan.year:
+                    continue
+
                 self._walk_dir(src_file)
                 continue
 
