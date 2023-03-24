@@ -98,7 +98,7 @@ class PictureArchiver:
     def _is_valid_backup_file(self, file_name):	
         fname, fext = os.path.splitext(file_name)
         fext = fext.lower().lstrip(".")
-        if self._excludeExt.count > 0 and self._excludeExt.count(fext) > 0:
+        if len(self._excludeExt) > 0 and self._excludeExt.count(fext) > 0:
             return False
 
         if self._include_video:            

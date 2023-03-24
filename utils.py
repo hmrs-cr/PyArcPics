@@ -8,7 +8,6 @@ import re
 import datetime
 import pwd
 import grp
-import statvfs
 
 primary_backup_marker = "destination_folder"
 secondary_backup_marker = "secondary_backup"
@@ -367,7 +366,7 @@ def get_sub_folder(file_name):
 
 def get_free_space(path):
     stats = os.statvfs(path)
-    return (stats[statvfs.F_FRSIZE] * stats[statvfs.F_BAVAIL])
+    return (stats.f_frsize * stats.f_bavail)
 
 def get_free_space_in_mb(path):
     return get_free_space(path) * 0.000001

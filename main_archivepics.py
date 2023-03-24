@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python3
 # coding=UTF8
 
 import argparse
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     if options.source is not None:
         if options.source != "ALL":
-            src_folders = [str(options.source, "UTF-8")]
+            src_folders = [options.source]
     else:
         try:
             if not options.config:
