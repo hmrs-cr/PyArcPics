@@ -20,7 +20,7 @@ PA_NEW_MODE="PA_NEW_MODE"
 error_printed = False
 
 def error(e):    
-    print '\033[91mERROR:', e, '\033[0m'
+    print('\033[91mERROR:', e, '\033[0m')
 
 
 def change_owner(path, owner, group, mod=None):
@@ -199,13 +199,13 @@ def get_picture_date(picture_path):
 
 def get_drive_list():
     if os.name == "posix":
-        import commands
+        import subprocess
 
-        mount = commands.getoutput('df -Ph')
+        mount = subprocess.getoutput('df -Ph')
         lines = mount.split('\n')        
         lines.reverse()     
-        uniquelines = dict(map(lambda line: (line.split(None, 5)[0], line), filter(lambda l: l.startswith("/dev") or l.startswith("//"), lines))).values()        
-        return map(lambda line: line.split(None, 5)[5], uniquelines)
+        uniquelines = list(dict([(line.split(None, 5)[0], line) for line in [l for l in lines if l.startswith("/dev") or l.startswith("//")]]).values())        
+        return [line.split(None, 5)[5] for line in uniquelines]
     elif os.name == "nt":
         import win32api
 
@@ -263,7 +263,7 @@ def read_backup_folder_options(options_file_name=""):
             if options_file_name:
                 config = json.load(open(options_file_name))
                 
-                for key, value in config.iteritems():
+                for key, value in config.items():
                     options[key] = value
 
                 optionsObj = FolderOptions(**options)        
@@ -399,50 +399,46 @@ def rmfile(filename):
         
 
 def remove_old_pictures(folder, size_to_claim):
-    yearfolders = filter(lambda d: str_to_int(d, 0) > 2010, os.listdir(folder))
+    yearfolders = [d for d in os.listdir(folder) if str_to_int(d, 0) > 2010]
     yearfolders.sort()
-    yearfolders = map(lambda d: os.path.join(folder, d), yearfolders)
-    yearfolders = filter(lambda d: os.path.isdir(d), yearfolders)
+    yearfolders = [os.path.join(folder, d) for d in yearfolders]
+    yearfolders = [d for d in yearfolders if os.path.isdir(d)]
 
     total_deleted_size = 0;
     deleted_count = 0;
     for year in yearfolders:
         #print year
-        monthfolders = filter(lambda d: 1 <= str_to_int(d, 0) <= 12, os.listdir(year))
+        monthfolders = [d for d in os.listdir(year) if 1 <= str_to_int(d, 0) <= 12]
         monthfolders.sort()
-        monthfolders = map(lambda d: os.path.join(year, d), monthfolders)
-        monthfolders = filter(lambda d: os.path.isdir(d), monthfolders)
+        monthfolders = [os.path.join(year, d) for d in monthfolders]
+        monthfolders = [d for d in monthfolders if os.path.isdir(d)]
         for month in monthfolders:
             #print month
             dayfolders = os.listdir(month)
             dayfolders.sort()
-            dayfolders = map(lambda d: os.path.join(month, d), dayfolders)
-            dayfolders = filter(lambda d: os.path.isdir(d), dayfolders)   
+            dayfolders = [os.path.join(month, d) for d in dayfolders]
+            dayfolders = [d for d in dayfolders if os.path.isdir(d)]   
 
             for day in dayfolders:
                 #print day
                 files = os.listdir(day)
                 files.sort()
-                files = map(lambda d: os.path.join(day, d), files)
-                files = filter(lambda d: os.path.isfile(d), files)   
+                files = [os.path.join(day, d) for d in files]
+                files = [d for d in files if os.path.isfile(d)]   
                 for file in files:                    
                     size = os.path.getsize(file)
 
-                    print 'Deleting', file
+                    print('Deleting', file)
                     if rmfile(file):
                         total_deleted_size = total_deleted_size + size                    
                         deleted_count = deleted_count + 1
                         if total_deleted_size > size_to_claim:
-                            print "Deleted count:", deleted_count
-                            print "Deleted size:", sizeof_fmt(total_deleted_size)                            
+                            print("Deleted count:", deleted_count)
+                            print("Deleted size:", sizeof_fmt(total_deleted_size))                            
                             return deleted_count
                 rmdir(day)
             
             rmdir(month)
 
         rmdir(year)
-
-
-    
-
 

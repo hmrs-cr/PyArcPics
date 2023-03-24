@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/2.7/bin/python
+#!/bin/python
 # coding=UTF8
 
 import argparse
@@ -35,11 +35,11 @@ if __name__ == "__main__":
     src_folders = None    
 
     if options.move_destination:
-        options.move_destination = unicode(options.move_destination, "UTF-8")
+        options.move_destination = str(options.move_destination, "UTF-8")
 
     if options.source is not None:
         if options.source != "ALL":
-            src_folders = [unicode(options.source, "UTF-8")]
+            src_folders = [str(options.source, "UTF-8")]
     else:
         try:
             if not options.config:
@@ -58,7 +58,7 @@ if __name__ == "__main__":
             dest_folder_options = utils.read_backup_folder_options(configfilename)
         else:
             dest_folder_options = utils.find_backup_folder_options()
-            dest_folder_options.dest_path = unicode(options.destination, "UTF-8")
+            dest_folder_options.dest_path = str(options.destination, "UTF-8")
     else:
         dest_folder_options = utils.find_backup_folder_options(utils.primary_backup_marker)
         if dest_folder_options is None or not dest_folder_options.dest_path:
@@ -99,7 +99,7 @@ if __name__ == "__main__":
             utils.error(e)
     
     #print dest_folder_options
-    print "Backup location:", dest_folder_options.dest_path, newusergroup
+    print("Backup location:", dest_folder_options.dest_path, newusergroup)
     
     for path in src_folders:
         import glob
@@ -110,11 +110,10 @@ if __name__ == "__main__":
         for exp_path in expanded_paths:
             if os.path.isdir(exp_path) or os.path.isfile(exp_path):
                 if not os.path.isfile(os.path.join(exp_path, ".no_backup")):
-                    print "SOURCE FOLDER:", exp_path
+                    print("SOURCE FOLDER:", exp_path)
                     if not options.scan_only:                
                         PictureArchiver.do(exp_path, dest_folder_options)
                 else:
-                    print "IGNORING:", exp_path
+                    print("IGNORING:", exp_path)
             else:
-                print "NOT FOUND:", path
-
+                print("NOT FOUND:", path)

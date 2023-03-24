@@ -60,14 +60,14 @@ class PictureArchiver:
 
     def _log(self, text):
         if self._verbose:
-            print text
+            print(text)
 	
     def _debug(self, text):
         if self._debug:
-            print text
+            print(text)
 
     def _error(self, msg):
-        print utils.error(msg)
+        print(utils.error(msg))
 
     def _correct_exif_date(self, filename, date):
         if not utils.is_picture(filename):
@@ -102,7 +102,7 @@ class PictureArchiver:
             return False
 
         if self._include_video:            
-            return fext in utils.MIME_TYPES.keys()
+            return fext in list(utils.MIME_TYPES.keys())
 		
         return utils.is_image(file_name)
 
@@ -159,7 +159,7 @@ class PictureArchiver:
     def _walk_dir(self, root_dir):
 
         if os.path.isdir(root_dir):
-            dir_list = filter(lambda d: not d.startswith('@'), os.listdir(root_dir))
+            dir_list = [d for d in os.listdir(root_dir) if not d.startswith('@')]
             dir_list.sort()
             self._imgCount += len(dir_list)
         else:
@@ -213,7 +213,7 @@ class PictureArchiver:
         dest_folder_name = self.get_dest_folder_name(picture_date)
         dest_folder = os.path.join(self._destPath, dest_folder_name, utils.get_sub_folder(src_file))
         dest_file = os.path.join(dest_folder, filename)
-        move = self._move_files or src_file.startswith(u"/home/hm/Imágenes/Camara")
+        move = self._move_files or src_file.startswith("/home/hm/Imágenes/Camara")
 
         while retries > 0:
             retries = retries - 1
@@ -273,7 +273,7 @@ class PictureArchiver:
             except IOError as ioerror:                
                 if ioerror.errno == errno.ENOSPC:                    
                     if self._rotate:
-                        print "WARN: No space left deleting older pictures"
+                        print("WARN: No space left deleting older pictures")
                         self._delete_old_pics = True
                         continue
                     else:
@@ -334,7 +334,7 @@ class PictureArchiver:
                 self.log_file.write("DURATION_TIME='" + totalTime + "'\n")
                 self.log_file.write("CANCELED=" + str(canceled) + "\n")
                 self.log_file.write("ERROR='" + str(error) + "'\n")
-                self.log_file.write("FOLDERS='" + ";".join(self.folder_list.keys()) + "'\n")
+                self.log_file.write("FOLDERS='" + ";".join(list(self.folder_list.keys())) + "'\n")
                 if self._diagnostics:
                     self.log_file.write("DIAGNOSTICS=True\n")
 
@@ -345,11 +345,11 @@ class PictureArchiver:
                 
         if self.post_proc_cmd and self.post_proc_args:       
             if '{{}}' in self.post_proc_args:
-                for folder in self.folder_list.keys():
+                for folder in list(self.folder_list.keys()):
                     shell_command = self.post_proc_cmd + " " +  self.post_proc_args.replace("{{}}", folder)
                     self._execute_post_proc_cmd(shell_command)                
             else:
-                shell_command = self.post_proc_cmd + " " + self.post_proc_args.replace("{}", " ".join(self.folder_list.keys()))
+                shell_command = self.post_proc_cmd + " " + self.post_proc_args.replace("{}", " ".join(list(self.folder_list.keys())))
                 self._execute_post_proc_cmd(shell_command)
 
         self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
@@ -392,3 +392,4 @@ class PictureArchiver:
     def correct_dates(cls, src_path):
         obj = cls(src_path, src_path)
         obj._walk_dir_correct_date(src_path)
+
