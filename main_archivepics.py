@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/Library/Frameworks/Python.framework/Versions/3.10/bin/python3
 # coding=UTF8
 
 import argparse
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     src_folders = None    
 
     if options.move_destination:
-        options.move_destination = str(options.move_destination, "UTF-8")
+        options.move_destination = options.move_destination
 
     if options.source is not None:
         if options.source != "ALL":
@@ -58,7 +58,7 @@ if __name__ == "__main__":
             dest_folder_options = utils.read_backup_folder_options(configfilename)
         else:
             dest_folder_options = utils.find_backup_folder_options()
-            dest_folder_options.dest_path = str(options.destination, "UTF-8")
+            dest_folder_options.dest_path = options.destination
     else:
         dest_folder_options = utils.find_backup_folder_options(utils.primary_backup_marker)
         if dest_folder_options is None or not dest_folder_options.dest_path:

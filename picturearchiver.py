@@ -73,10 +73,11 @@ class PictureArchiver:
         if not utils.is_picture(filename):
             return
         try:
-            import pyexiv2
-            exif_data = pyexiv2.ImageMetadata(filename)
+            import exifread
+            f = open(filename, 'rb')
+            exif_data = exifread.process_file(f, details=False)
+            f.close()
             need_write = False
-            exif_data.read()
 
             if utils.get_exif_value(exif_data, 'Exif.Image.DateTime') is None:
                 exif_data['Exif.Image.DateTime'] = date
@@ -285,11 +286,11 @@ class PictureArchiver:
 
     def archive_pictures(self):
 
-        # Just to report that pyexiv2 does not exists in the system
+        # Just to report that exifread does not exists in the system
         try:
-            import pyexiv2
+            import exifread
         except Exception as ex:
-            utils.error(ex)	    
+            utils.error(ex)   
 
         self._imgCount = 0
         self._currImgIndex = 0
@@ -310,7 +311,7 @@ class PictureArchiver:
 
         
     def _execute_post_proc_cmd(self, command):
-        
+
         # Do not execute arbitrary commands from world writable config file
         # by default, it´s dangerous
         #if self.enable_post_proc_cmd:

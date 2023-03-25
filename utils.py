@@ -9,6 +9,13 @@ import datetime
 import pwd
 import grp
 
+hasexifread = False
+try:
+    import exifread
+    hasexifread = True
+except Exception as ex:
+    pass
+
 primary_backup_marker = "destination_folder"
 secondary_backup_marker = "secondary_backup"
 
@@ -89,7 +96,7 @@ def sizeof_fmt(num, suffix='B'):
 
 def has_exif(file_name):
     fname, fext = os.path.splitext(file_name)
-    return fext.lower() in [".jpg", ".jpeg", ".png", ".dng", ".orf", ".cr2"]
+    return fext.lower() in [".jpg", ".jpeg", ".png", ".dng", ".orf", ".cr2", ".arw"]
 
 
 def is_picture(file_name):
@@ -97,31 +104,35 @@ def is_picture(file_name):
     return fext.lower() in [".jpg", ".jpeg", ".png"]
 
 
-def get_exif_value(exif_data, key):
+def get_exif_value_date(exif_data, key):
     try:
-        return exif_data[key].value
-    except Exception:
+        val = exif_data[key].values
+        return datetime.datetime.strptime(val, '%Y:%m:%d %H:%M:%S')
+    except Exception as e:
         return None
 
 
 def read_picture_date(exif_data):
-    obj_date = get_exif_value(exif_data, 'Exif.Image.DateTime')
+    obj_date = get_exif_value_date(exif_data, 'Image DateTime')
     if obj_date is None or type(obj_date) is not datetime.datetime:
-        obj_date = get_exif_value(exif_data, 'Exif.Photo.DateTimeOriginal')
+        obj_date = get_exif_value_date(exif_data, 'EXIF DateTimeOriginal')        
         if obj_date is None or type(obj_date) is not datetime.datetime:
-            obj_date = get_exif_value(exif_data, 'Exif.Photo.DateTimeDigitized')
+            obj_date = get_exif_value_date(exif_data, 'EXIF DateTimeDigitized')
             if type(obj_date) is not datetime.datetime:
                 obj_date = None
-
+    
     return obj_date
 
 def date_from_exif_data(filename):
+    if not hasexifread:
+        return None
     
     try:
-        import pyexiv2
-        exif_data = pyexiv2.ImageMetadata(filename)
-        exif_data.read()
-        obj_date = read_picture_date(exif_data)
+        with open(filename, 'rb') as f:
+            exif_data = exifread.process_file(f, details=False, stop_tag='DateTime')        
+
+        obj_date = read_picture_date(exif_data)             
+        #print(filename, obj_date)
     except Exception as ex:           
         obj_date = None
 
@@ -184,7 +195,7 @@ def get_date_from_file_date(filename):
 
 def get_picture_date(picture_path):
     obj_date = None
-    if has_exif(picture_path):
+    if has_exif(picture_path):        
         obj_date = date_from_exif_data(picture_path)
 
     if obj_date is None:
@@ -192,7 +203,7 @@ def get_picture_date(picture_path):
 
         if obj_date is None:
             obj_date = get_date_from_file_date(picture_path)
-
+                
     return obj_date
 
 
@@ -317,7 +328,7 @@ def find_backup_folder_options(folder=primary_backup_marker):
 
             return folder
         
-    return None
+    return read_backup_folder_options("")
 
 
 MIME_TYPES = {
