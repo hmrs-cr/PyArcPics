@@ -141,9 +141,9 @@ class PictureArchiver:
         self._database_connections[picture_date.year] = con
 
         if validate_only:
-            dbutils.validate_picture_record(con.cursor(), dest_relative_filename, src_checksum, src_size, picture_date)
+            con.validate_picture_record(dest_relative_filename, src_checksum, src_size, picture_date)
         else:
-            dbutils.insert_picture_record(con.cursor(), dest_relative_filename, src_checksum, src_size, picture_date)
+            con.insert_picture_record(dest_relative_filename, src_checksum, src_size, picture_date)
 
         if self._last_year != picture_date.year:
             if self._last_year is not None:
