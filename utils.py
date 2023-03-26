@@ -8,6 +8,7 @@ import re
 import datetime
 import pwd
 import grp
+import zlib
 
 hasexifread = False
 try:
@@ -15,6 +16,14 @@ try:
     hasexifread = True
 except Exception as ex:
     pass
+
+def crc32(filename, chunksize=65536):
+    """Compute the CRC-32 checksum of the contents of the given filename"""
+    with open(filename, "rb") as f:
+        checksum = 0
+        while (chunk := f.read(chunksize)) :
+            checksum = zlib.crc32(chunk, checksum)
+        return checksum
 
 primary_backup_marker = "destination_folder"
 secondary_backup_marker = "secondary_backup"
@@ -25,9 +34,11 @@ PA_NEW_MODE="PA_NEW_MODE"
 
 error_printed = False
 
-def error(e):    
-    print('\033[91mERROR:', e, '\033[0m')
-
+def error(e, errorLabel=True):  
+    if errorLabel:  
+        print('\033[91mERROR:', e, '\033[0m')
+    else:
+        print('\033[91m' + e + '\033[0m')
 
 def change_owner(path, owner, group, mod=None):
     if not owner or not group:
@@ -381,6 +392,12 @@ def get_free_space(path):
 
 def get_free_space_in_mb(path):
     return get_free_space(path) * 0.000001
+
+def str_to_date(str):
+    try:
+        return datetime.datetime.strptime(str, '%Y-%m-%d')
+    except:
+        return None
 
 def str_to_int(str, defval):
     try:

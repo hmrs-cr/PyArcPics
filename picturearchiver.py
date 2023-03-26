@@ -7,6 +7,8 @@ import time
 import utils
 import datetime
 import datetime
+import dbutils
+import atexit
 
 # noinspection PyBroadException
 class PictureArchiver:
@@ -14,6 +16,25 @@ class PictureArchiver:
     _debug = False
 
     def __init__(self, src_path, dest_path):
+        self._update_checksum_db_only = dest_path ==  'update-checksums'
+        self._validate_checksum_db_only = dest_path ==  'validate-checksums'
+        if self._update_checksum_db_only or self._validate_checksum_db_only:
+            dest_path = src_path
+            number = utils.str_to_int(os.path.basename(src_path), 0)
+            if 2010 < number < 2100:
+                dest_path = os.path.dirname(src_path)
+            elif 1 < number < 12 and 2010 < utils.str_to_int(os.path.basename(os.path.dirname(src_path)), 0) < 2100:
+                dest_path = os.path.dirname(os.path.dirname(src_path))
+            elif (date := utils.str_to_date(os.path.basename(src_path))) is not None:
+                month = os.path.dirname(src_path)
+                year = os.path.dirname(month)
+                dest_path = os.path.dirname(year)
+            else:
+                yeardirs = [y for y in [utils.str_to_int(d, 0) for d in os.listdir(src_path) if os.path.isdir(os.path.join(src_path, d))] if 2010 < y < 2100 ]
+                if not len(yeardirs):
+                    utils.error(f'{src_path} is not a valid picture archive folder.')
+                    exit(1)
+
         self._srcPath = src_path
         self._destPath = dest_path
         self._move_files = False
@@ -35,6 +56,7 @@ class PictureArchiver:
         self.enable_post_proc_cmd = False
         self._delete_old_pics = False
         self._excludeOlderThan = None
+        self._finished = False
 
     def _change_owner(self, path):
         new_owner = os.environ.get(utils.PA_NEW_OWNER)
@@ -67,7 +89,7 @@ class PictureArchiver:
             print(text)
 
     def _error(self, msg):
-        print(utils.error(msg))
+        utils.error(msg)
 
     def _correct_exif_date(self, filename, date):
         if not utils.is_picture(filename):
@@ -119,12 +141,38 @@ class PictureArchiver:
             return ""
 
     def _correct_picture_date(self, picture_path, datetime):
-        self._correct_exif_date(picture_path, datetime)
+        #self._correct_exif_date(picture_path, datetime)
 
         filetime = time.mktime(datetime.timetuple())
         os.utime(picture_path, (filetime, filetime))
 
         #self._debug("Corrected: " + picture_path)
+
+    def _validate_against_database(self, dest_relative_filename, src_checksum, src_size, picture_date, validate_only=False):
+        return self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date, True)
+    
+    def _save_to_database(self, dest_relative_filename, src_checksum, src_size, picture_date, validate_only=False):
+        if self._database_connections is None:
+            self._database_connections = {}
+        
+        databasename = os.path.join(self._destPath, str(picture_date.year), f'checksums-{picture_date.year}.db')
+        con = self._database_connections.get(picture_date.year) or dbutils.start_db_transaction(databasename)
+        self._database_connections[picture_date.year] = con
+
+        if validate_only:
+            dbutils.validate_picture_record(con.cursor(), dest_relative_filename, src_checksum, src_size, picture_date)
+        else:
+            dbutils.insert_picture_record(con.cursor(), dest_relative_filename, src_checksum, src_size, picture_date)
+
+        if self._last_year != picture_date.year:
+            if self._last_year is not None:
+                con = self._database_connections[self._last_year]
+                if con is not None:
+                    dbutils.close_db_transaction(con)
+                    del self._database_connections[self._last_year]
+            self._last_year = picture_date.year
+
+
 
     def _walk_dir_correct_date(self, root_dir):
         dir_list = os.listdir(root_dir)
@@ -177,7 +225,7 @@ class PictureArchiver:
             src_file = os.path.join(root_dir, filename)
 
             if os.path.isdir(src_file):
-                if self._excludeOlderThan is not None and 2010 < utils.str_to_int(filename, 99999) < self._excludeOlderThan.year:
+                if self._excludeOlderThan is not None and 2010 < utils.str_to_int(filename, 2100) < self._excludeOlderThan.year:
                     continue
 
                 self._walk_dir(src_file)
@@ -219,19 +267,32 @@ class PictureArchiver:
         while retries > 0:
             retries = retries - 1
             try:
-                if os.path.isfile(dest_file) and os.path.samefile(src_file, dest_file):
-                    self._log("SKIPING: '" + dest_file + "' Source and destination are the same.")
+                update = False
+                if not (self._update_checksum_db_only or self._validate_checksum_db_only):
+                    if os.path.isfile(dest_file) and os.path.samefile(src_file, dest_file):
+                        self._log("SKIPING: '" + dest_file + "' Source and destination are the same.")
+                        return
+
+                    if os.path.isfile(dest_file):
+                        update = True
+                        dest_size = os.path.getsize(dest_file)
+                        if dest_size >= src_size:
+                            self._log("SKIPING: '" + dest_file + "' already exists.")
+                            self._move_to_move_destination(src_file, dest_folder_name)
+                            return
+                    
+                src_checksum = utils.crc32(src_file)
+                dest_relative_filename = dest_file.replace(self._destPath, '.', 1)
+
+                if self._validate_checksum_db_only:
+                    self._validate_against_database(dest_relative_filename, src_checksum, src_size, picture_date)
                     return
 
-                update = False
-                if os.path.isfile(dest_file):
-                    update = True
-                    dest_size = os.path.getsize(dest_file)
-                    if dest_size >= src_size:
-                        self._log("SKIPING: '" + dest_file + "' already exists.")
-                        self._move_to_move_destination(src_file, dest_folder_name)
-                        return
-                    
+                if self._update_checksum_db_only:
+                    self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date)
+                    self._log(f'UPDATED CKSUM: {dest_relative_filename}, {src_checksum}, {src_size}, {picture_date}')
+                    return
+      
                 if self._rotate and (self._delete_old_pics or utils.get_free_space(self._destPath) < src_size):                
                     utils.remove_old_pictures(self._destPath, src_size)
                     self._delete_old_pics = False
@@ -266,7 +327,8 @@ class PictureArchiver:
                 if success:
                     self._move_to_move_destination(src_file, dest_folder_name)
                     if not self._diagnostics:
-                        self._correct_picture_date(dest_file, picture_date)                    
+                        self._correct_picture_date(dest_file, picture_date)
+                        self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date)                    
 
                     self._success_count += 1
 
@@ -285,7 +347,6 @@ class PictureArchiver:
                     return
 
     def archive_pictures(self):
-
         # Just to report that exifread does not exists in the system
         try:
             import exifread
@@ -297,18 +358,18 @@ class PictureArchiver:
         self._success_count = 0
         self._bytes_copied = 0
         self._start_time = time.time()
+        self._database_connections = None
+        self._last_year = None
 
+        atexit.register(self._finish)
         try:            
             self._walk_dir(self._srcPath)
             self._finish()            
         except KeyboardInterrupt as ki:
             self._finish(True, ki)
-            pass
         except Exception as e:
             self._finish(True, e)
             utils.error(e)
-            pass
-
         
     def _execute_post_proc_cmd(self, command):
 
@@ -321,7 +382,15 @@ class PictureArchiver:
         self._log("Command not executed (disabled): " + command)
 
     def _finish(self, canceled=False, error=None):
-        totalTime = utils.format_time(time.time() - self._start_time)        
+        if self._finished:
+            return
+
+        atexit.unregister(self._finish)
+        self._finished = True
+        self.cleanup()
+
+        totalSeconds = time.time() - self._start_time
+        totalTime = utils.format_time(totalSeconds)        
         try:
             if self.log_file_name:
                 self._log("Saving result logs: " + os.path.abspath(self.log_file_name))
@@ -353,8 +422,8 @@ class PictureArchiver:
                 shell_command = self.post_proc_cmd + " " + self.post_proc_args.replace("{}", " ".join(list(self.folder_list.keys())))
                 self._execute_post_proc_cmd(shell_command)
 
-        self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied.")
-        self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime)
+        self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied." + f'({int(self._success_count/totalSeconds)} files/s)')
+        self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime + f' ({utils.sizeof_fmt(self._bytes_copied/totalSeconds)}/s)')
 		
 
     @classmethod
@@ -393,4 +462,11 @@ class PictureArchiver:
     def correct_dates(cls, src_path):
         obj = cls(src_path, src_path)
         obj._walk_dir_correct_date(src_path)
+
+    def cleanup(self):
+        if self._database_connections is not None:
+            connections = self._database_connections
+            self._database_connections = None
+            for key in connections.keys():
+                dbutils.close_db_transaction(connections[key])
 
