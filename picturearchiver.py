@@ -197,7 +197,7 @@ class PictureArchiver:
             dir_list = [os.path.basename(root_dir)]
             root_dir = os.path.dirname(root_dir)
 
-        files_left = len(dir_list)
+        self._files_left = len(dir_list)
         for filename in dir_list:
             self._currImgIndex += 1
             self._currImgFileName = filename
@@ -288,8 +288,8 @@ class PictureArchiver:
                         self._change_owner(dest_file)
                         self._bytes_copied = self._bytes_copied + src_size
 
-                    files_left -= 1
-                    if files_left == 0:
+                    self._files_left -= 1
+                    if self._files_left == 0:
                         try:
                             if not self._diagnostics and os.path.isdir(root_dir):
                                 os.rmdir(root_dir)
