@@ -35,12 +35,14 @@ def insert_picture_record(cur, name, checksum, size, timestamp):
 def validate_picture_record(cur, name, checksum, size, timestamp):
     res = cur.execute("SELECT checksum, size, timestamp FROM pictures WHERE name = ?", (name,))
     result = res.fetchone()
-    if (result[0] != checksum):
+    if (result is None):
+        utils.error(f'INVALID: {name} cheksum record missing', False)
+    elif (result[0] != checksum):
         utils.error(f'INVALID: {name} CHECKSUM: {checksum} != {result[0]}', False)
     elif (result[1] != size):
         utils.error(f'INVALID: {name} SIZE: {size} != {result[1]}', False)
     elif (result[2] != int(timestamp.timestamp())):
-        utils.error(f'INVALID: {name} TIMESTAMP:{timestamp} != {datetime.datetime.fromtimestamp(int(result[2]))}', False)
+        utils.error(f'INVALID: {name} TIMESTAMP: {timestamp} != {datetime.datetime.fromtimestamp(int(result[2]))}', False)
     else:
         print(f'VALID: {name}')
 

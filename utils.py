@@ -252,6 +252,14 @@ class FolderOptions:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
+    def overwrite(self, options):
+        optionsdict = vars(options)
+        for option in optionsdict.keys():
+            value = optionsdict[option]
+            if (value):
+                if option in self.__dict__.keys():
+                    self.__dict__[option] = value
+
     def __str__(self):
         return str(self.__dict__)
 
@@ -275,7 +283,9 @@ def read_backup_folder_options(options_file_name=""):
         "initialized": False,
         "rotate": False, # If true and the drive is full will delete older pictures to make room for new ones.
         "excludeExt": [],
-        "excludeOlderThan": None
+        "excludeOlderThan": None,
+        "update_checksums": None,
+        "validate_checksums": None
     }
     
     optionsObj = FolderOptions(**options)
@@ -468,4 +478,28 @@ def remove_old_pictures(folder, size_to_claim):
             rmdir(month)
 
         rmdir(year)
+
+def get_checksum_db_folder(src_path):
+    if os.path.isfile(src_path):
+        src_path = os.path.dirname(src_path)
+
+    src_path = src_path.rstrip(os.sep)
+
+    dest_path = src_path
+    number = str_to_int(os.path.basename(src_path), 0)
+    if 2010 < number < 2100:
+        dest_path = os.path.dirname(src_path)
+    elif 1 < number < 12 and 2010 < str_to_int(os.path.basename(os.path.dirname(src_path)), 0) < 2100:
+        dest_path = os.path.dirname(os.path.dirname(src_path))
+    elif (date := str_to_date(os.path.basename(src_path))) is not None:
+        month = os.path.dirname(src_path)
+        year = os.path.dirname(month)
+        dest_path = os.path.dirname(year)
+    else:
+        yeardirs = [y for y in [str_to_int(d, 0) for d in os.listdir(src_path) if os.path.isdir(os.path.join(src_path, d))] if 2010 < y < 2100 ]
+        if not len(yeardirs):
+            error(f'{src_path} is not a valid picture archive folder.')
+            exit(1)
+    
+    return dest_path
 

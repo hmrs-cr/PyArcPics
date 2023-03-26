@@ -26,6 +26,10 @@ if __name__ == "__main__":
     parser.add_argument('-m', dest='move', action="store_true", help="Move files instead of copy them.")
     parser.add_argument('-d', dest='diagnostics', action="store_true", help="Don't run the actual actions.")
     parser.add_argument('-s', dest='scan_only', action="store_true", help="Scan folder but don't perform backup")
+    parser.add_argument('--rotate', dest='rotate', action="store_true", help="If destination folder is full, will delete older files to make room for new ones.")
+    parser.add_argument('--update-checksums', dest='update_checksums', action="store_true", help="Updates the checksum database in the source folder.")
+    parser.add_argument('--validate-checksums', dest='validate_checksums', action="store_true", help="Validates the checksum database in the source folder against the actual files checksums.")
+
 
     options = parser.parse_args()
 
@@ -36,6 +40,15 @@ if __name__ == "__main__":
 
     if options.move_destination:
         options.move_destination = options.move_destination
+
+    if options.validate_checksums or options.update_checksums:
+        if options.source == "ALL" or not os.path.exists(options.source):
+            utils.error('Please specify a valid folder or file.')
+            exit(1)
+
+        src_folders = [options.source]
+        options.destination = utils.get_checksum_db_folder(options.source)
+
 
     if options.source is not None:
         if options.source != "ALL":
@@ -50,7 +63,7 @@ if __name__ == "__main__":
             pass
 
     if src_folders is None or src_folders == "ALL":
-        src_folders = utils.find_camera_folders() + utils.find_camera_folders("SD Card Imports")    
+        src_folders = utils.find_camera_folders() + utils.find_camera_folders("SD Card Imports")
 
     if options.destination is not None and options.destination != "AUTO":        
         configfilename = os.path.join(options.destination, utils.primary_backup_marker)
@@ -72,11 +85,7 @@ if __name__ == "__main__":
             utils.error("No enough space in {path}.".format(path=dest_folder_options.dest_path))
             exit() 
 
-    dest_folder_options.log_file = options.log_file
-    dest_folder_options.diagnostics = options.diagnostics
-    dest_folder_options.move = options.move
-    dest_folder_options.move_destination = options.move_destination
-    dest_folder_options.log_file = options.log_file
+    dest_folder_options.overwrite(options)
 
     if not isinstance(src_folders, list):
         sys.stderr.write("Source folders in config is not a valid list: " + src_folders + "\n")

@@ -16,25 +16,6 @@ class PictureArchiver:
     _debug = False
 
     def __init__(self, src_path, dest_path):
-        self._update_checksum_db_only = dest_path ==  'update-checksums'
-        self._validate_checksum_db_only = dest_path ==  'validate-checksums'
-        if self._update_checksum_db_only or self._validate_checksum_db_only:
-            dest_path = src_path
-            number = utils.str_to_int(os.path.basename(src_path), 0)
-            if 2010 < number < 2100:
-                dest_path = os.path.dirname(src_path)
-            elif 1 < number < 12 and 2010 < utils.str_to_int(os.path.basename(os.path.dirname(src_path)), 0) < 2100:
-                dest_path = os.path.dirname(os.path.dirname(src_path))
-            elif (date := utils.str_to_date(os.path.basename(src_path))) is not None:
-                month = os.path.dirname(src_path)
-                year = os.path.dirname(month)
-                dest_path = os.path.dirname(year)
-            else:
-                yeardirs = [y for y in [utils.str_to_int(d, 0) for d in os.listdir(src_path) if os.path.isdir(os.path.join(src_path, d))] if 2010 < y < 2100 ]
-                if not len(yeardirs):
-                    utils.error(f'{src_path} is not a valid picture archive folder.')
-                    exit(1)
-
         self._srcPath = src_path
         self._destPath = dest_path
         self._move_files = False
@@ -435,6 +416,8 @@ class PictureArchiver:
         obj.log_file_name = options.log_file
         obj._rotate = options.rotate
         obj._excludeExt = options.excludeExt
+        obj._update_checksum_db_only = options.update_checksums
+        obj._validate_checksum_db_only = options.validate_checksums
         obj._excludeOlderThan = datetime.datetime.strptime(options.excludeOlderThan, '%Y-%m-%d %H:%M') if options.excludeOlderThan is not None else None
 
         obj.post_proc_cmd = options.post_proc_cmd
