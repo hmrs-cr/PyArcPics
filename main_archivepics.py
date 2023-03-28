@@ -73,7 +73,7 @@ if __name__ == "__main__":
         else:
             dest_folder_options = utils.find_backup_folder_options()
             dest_folder_options.dest_path = options.destination
-    else:
+    elif not (options.validate_checksums or options.update_checksums):
         dest_folder_options = utils.find_backup_folder_options(utils.primary_backup_marker)
         if dest_folder_options is None or not dest_folder_options.dest_path:
             sys.stderr.write("Could not determine backup folder\n")
