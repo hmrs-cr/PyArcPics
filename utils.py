@@ -269,7 +269,7 @@ def read_backup_folder_options(options_file_name=""):
     options = {
         "priority": 100, # Priority of the folder
         "subfolder": None, # Subfolder in main path
-        "dest_path": os.path.dirname(options_file_name), # Full backup folder path
+        "dest_path": os.path.dirname(options_file_name) if options_file_name is not None else "", # Full backup folder path
         "diagnostics": False, # Diganostics mode (CL)
         "move": False, # Move files insted of copy (CL)
         "min_size": None, # Min size in MB in des_path
@@ -290,22 +290,23 @@ def read_backup_folder_options(options_file_name=""):
     }
     
     optionsObj = FolderOptions(**options)
-    if options_file_name:
-        try:        
-            if options_file_name:
-                config = json.load(open(options_file_name))
-                
-                for key, value in config.items():
-                    options[key] = value
+    if options_file_name is not None:
+        if options_file_name:
+            try:        
+                if options_file_name:
+                    config = json.load(open(options_file_name))
+                    
+                    for key, value in config.items():
+                        options[key] = value
 
-                optionsObj = FolderOptions(**options)        
+                    optionsObj = FolderOptions(**options)        
 
-                if optionsObj.subfolder is not None:
-                    optionsObj.dest_path = os.path.join(optionsObj.dest_path , optionsObj.subfolder)
+                    if optionsObj.subfolder is not None:
+                        optionsObj.dest_path = os.path.join(optionsObj.dest_path , optionsObj.subfolder)
 
-                optionsObj.initialized = True
-        except:     
-            pass
+                    optionsObj.initialized = True
+            except:     
+                pass
         
     return optionsObj
 

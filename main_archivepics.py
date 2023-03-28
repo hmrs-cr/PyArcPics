@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     import json
     config = None
-    dest_folder_options = None
+    dest_folder_options = utils.read_backup_folder_options(None)
     src_folders = None    
 
     if options.move_destination:
@@ -48,7 +48,7 @@ if __name__ == "__main__":
             exit(1)
 
         src_folders = [options.source]
-        options.destination = utils.get_checksum_db_folder(options.source)
+        dest_folder_options.dest_path = utils.get_checksum_db_folder(options.source)        
 
 
     if options.source is not None:
@@ -63,21 +63,22 @@ if __name__ == "__main__":
         except:
             pass
 
-    if src_folders is None or src_folders == "ALL":
-        src_folders = utils.find_camera_folders() + utils.find_camera_folders("SD Card Imports")
+    if not (options.validate_checksums or options.update_checksums):
+        if src_folders is None or src_folders == "ALL":
+            src_folders = utils.find_camera_folders() + utils.find_camera_folders("SD Card Imports")
 
-    if options.destination is not None and options.destination != "AUTO":        
-        configfilename = os.path.join(options.destination, utils.primary_backup_marker)
-        if os.path.isfile(configfilename):
-            dest_folder_options = utils.read_backup_folder_options(configfilename)
+        if options.destination is not None and options.destination != "AUTO":        
+            configfilename = os.path.join(options.destination, utils.primary_backup_marker)
+            if os.path.isfile(configfilename):
+                dest_folder_options = utils.read_backup_folder_options(configfilename)
+            else:
+                dest_folder_options = utils.find_backup_folder_options()
+                dest_folder_options.dest_path = options.destination
         else:
-            dest_folder_options = utils.find_backup_folder_options()
-            dest_folder_options.dest_path = options.destination
-    elif not (options.validate_checksums or options.update_checksums):
-        dest_folder_options = utils.find_backup_folder_options(utils.primary_backup_marker)
-        if dest_folder_options is None or not dest_folder_options.dest_path:
-            sys.stderr.write("Could not determine backup folder\n")
-            exit(1)
+            dest_folder_options = utils.find_backup_folder_options(utils.primary_backup_marker)
+            if dest_folder_options is None or not dest_folder_options.dest_path:
+                sys.stderr.write("Could not determine backup folder\n")
+                exit(1)
 
     min_size = dest_folder_options.min_size
     if min_size is not None:

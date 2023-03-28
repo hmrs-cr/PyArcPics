@@ -1,6 +1,7 @@
 import datetime
 import sqlite3
 import utils
+import time
 
 
 create_table_sql = """
@@ -16,7 +17,7 @@ CREATE TABLE IF NOT EXISTS pictures (
 begin_transaction_sql = "BEGIN TRANSACTION;"
 commit_transaction_sql = "COMMIT;"
 
-insert_sql = "INSERT OR REPLACE INTO pictures (name, checksum, size, timestamp, addeondtimestamp) VALUES (?, ?, ?, ?, unixepoch());"
+insert_sql = "INSERT OR REPLACE INTO pictures (name, checksum, size, timestamp, addeondtimestamp) VALUES (?, ?, ?, ?, ?);"
 
 def _adapt_datetime_epoch(val):
     """Adapt datetime.datetime to Unix timestamp."""
@@ -30,7 +31,7 @@ sqlite3.register_adapter(datetime.datetime, _adapt_datetime_epoch)
 sqlite3.register_converter("timestamp", _convert_timestamp)
 
 def _insert_picture_record(cur, name, checksum, size, timestamp):
-    return cur.execute(insert_sql, (name, checksum, size, timestamp))
+    return cur.execute(insert_sql, (name, checksum, size, timestamp, int(time.time())))
 
 def _validate_picture_record(cur, name, checksum, size, timestamp):
     res = cur.execute("SELECT checksum, size, timestamp FROM pictures WHERE name = ?", (name,))
