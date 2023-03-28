@@ -26,6 +26,7 @@ if __name__ == "__main__":
     parser.add_argument('-m', dest='move', action="store_true", help="Move files instead of copy them.")
     parser.add_argument('-d', dest='diagnostics', action="store_true", help="Don't run the actual actions.")
     parser.add_argument('-s', dest='scan_only', action="store_true", help="Scan folder but don't perform backup")
+    parser.add_argument('--no-checksums', dest='no_checksums', action="store_true", help="Do not calculate/store checksum data.")
     parser.add_argument('--rotate', dest='rotate', action="store_true", help="If destination folder is full, will delete older files to make room for new ones.")
     parser.add_argument('--update-checksums', dest='update_checksums', action="store_true", help="Updates the checksum database in the source folder.")
     parser.add_argument('--validate-checksums', dest='validate_checksums', action="store_true", help="Validates the checksum database in the source folder against the actual files checksums.")

@@ -133,6 +133,9 @@ class PictureArchiver:
         return self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date, True)
     
     def _save_to_database(self, dest_relative_filename, src_checksum, src_size, picture_date, validate_only=False):
+        if self._no_checksums or src_checksum is None:
+            return
+
         if self._database_connections is None:
             self._database_connections = {}
         
@@ -262,7 +265,7 @@ class PictureArchiver:
                             self._move_to_move_destination(src_file, dest_folder_name)
                             return
                     
-                src_checksum = utils.crc32(src_file)
+                src_checksum = None if self._no_checksums else utils.crc32(src_file)
                 dest_relative_filename = dest_file.replace(self._destPath, '.', 1)
 
                 if self._validate_checksum_db_only:
@@ -416,6 +419,7 @@ class PictureArchiver:
         obj.log_file_name = options.log_file
         obj._rotate = options.rotate
         obj._excludeExt = options.excludeExt
+        obj._no_checksums = options.no_checksums
         obj._update_checksum_db_only = options.update_checksums
         obj._validate_checksum_db_only = options.validate_checksums
         obj._excludeOlderThan = datetime.datetime.strptime(options.excludeOlderThan, '%Y-%m-%d %H:%M') if options.excludeOlderThan is not None else None

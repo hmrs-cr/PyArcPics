@@ -285,7 +285,8 @@ def read_backup_folder_options(options_file_name=""):
         "excludeExt": [],
         "excludeOlderThan": None,
         "update_checksums": None,
-        "validate_checksums": None
+        "validate_checksums": None,
+        "no_checksums": None
     }
     
     optionsObj = FolderOptions(**options)
