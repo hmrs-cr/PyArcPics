@@ -38,6 +38,7 @@ class PictureArchiver:
         self._delete_old_pics = False
         self._excludeOlderThan = None
         self._finished = False
+        self._invalid_count = 0
 
     def _change_owner(self, path):
         new_owner = os.environ.get(utils.PA_NEW_OWNER)
@@ -144,10 +145,12 @@ class PictureArchiver:
         self._database_connections[picture_date.year] = con
 
         if validate_only:
-            con.validate_picture_record(dest_relative_filename, src_checksum, src_size, picture_date)
+            self._invalid_count = self._invalid_count + (1 if not con.is_picture_valid(dest_relative_filename, src_checksum, src_size, picture_date) else 0)
         else:
             con.insert_picture_record(dest_relative_filename, src_checksum, src_size, picture_date)
 
+        self._success_count = self._success_count + 1
+        self._bytes_copied = self._bytes_copied + src_size
         if self._last_year != picture_date.year:
             if self._last_year is not None:
                 con = self._database_connections[self._last_year]
@@ -406,8 +409,14 @@ class PictureArchiver:
                 shell_command = self.post_proc_cmd + " " + self.post_proc_args.replace("{}", " ".join(list(self.folder_list.keys())))
                 self._execute_post_proc_cmd(shell_command)
 
-        self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied." + f'({int(self._success_count/totalSeconds)} files/s)')
-        self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime + f' ({utils.sizeof_fmt(self._bytes_copied/totalSeconds)}/s)')
+        if self._validate_checksum_db_only:
+            print(f'{self._success_count} ({utils.sizeof_fmt(self._bytes_copied)}) of {self._currImgIndex} validated in {totalTime} ({int(self._success_count/totalSeconds)} files/s, {utils.sizeof_fmt(self._bytes_copied/totalSeconds)}/s)')
+            print(f'\033[91m{self._invalid_count} invalid!\033[0m' if self._invalid_count > 0 else '\033[92mAll of them valid.\033[0m')
+        elif self._update_checksum_db_only:
+            print(f'{self._success_count} ({utils.sizeof_fmt(self._bytes_copied)}) of {self._currImgIndex} updated checksums in {totalTime} ({int(self._success_count/totalSeconds)} files/s, {utils.sizeof_fmt(self._bytes_copied/totalSeconds)}/s)')
+        else:
+            self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied." + f'({int(self._success_count/totalSeconds)} files/s)')
+            self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime + f' ({utils.sizeof_fmt(self._bytes_copied/totalSeconds)}/s)')
 		
 
     @classmethod
