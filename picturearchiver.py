@@ -13,7 +13,6 @@ import atexit
 # noinspection PyBroadException
 class PictureArchiver:
     _verbose = True
-    _debug = False
 
     def __init__(self, src_path, dest_path):
         self._srcPath = src_path
@@ -39,6 +38,7 @@ class PictureArchiver:
         self._excludeOlderThan = None
         self._finished = False
         self._invalid_count = 0
+        self._log_debug = False
 
     def _change_owner(self, path):
         new_owner = os.environ.get(utils.PA_NEW_OWNER)
@@ -67,8 +67,7 @@ class PictureArchiver:
             print(text)
 	
     def _debug(self, text):
-        if self._debug:
-            print(text)
+        utils.debug(text)        
 
     def _error(self, msg):
         utils.error(msg)
@@ -241,7 +240,7 @@ class PictureArchiver:
             return
         
         if self._excludeOlderThan is not None and picture_date < self._excludeOlderThan:
-            self._log("SKIPING: '" + src_file + "' is older than " + self._excludeOlderThan.strftime('%Y-%m-%d %H:%M'))
+            self._debug("SKIPING: '" + src_file + "' is older than " + self._excludeOlderThan.strftime('%Y-%m-%d %H:%M'))
             return
         
         retries = 5
@@ -257,14 +256,14 @@ class PictureArchiver:
                 update = False
                 if not (self._update_checksum_db_only or self._validate_checksum_db_only):
                     if os.path.isfile(dest_file) and os.path.samefile(src_file, dest_file):
-                        self._log("SKIPING: '" + dest_file + "' Source and destination are the same.")
+                        self._debug("SKIPING: '" + dest_file + "' Source and destination are the same.")
                         return
 
                     if os.path.isfile(dest_file):
                         update = True
                         dest_size = os.path.getsize(dest_file)
                         if dest_size >= src_size:
-                            self._log("SKIPING: '" + dest_file + "' already exists.")
+                            self._debug("SKIPING: '" + dest_file + "' already exists.")
                             self._move_to_move_destination(src_file, dest_folder_name)
                             return
                     
@@ -280,8 +279,9 @@ class PictureArchiver:
                     self._log(f'UPDATED CKSUM: {dest_relative_filename}, {src_checksum}, {src_size}, {picture_date}')
                     return
       
+                self._delete_old_pics = True
                 if self._rotate and (self._delete_old_pics or utils.get_free_space(self._destPath) < src_size):                
-                    utils.remove_old_pictures(self._destPath, src_size)
+                    self._bytes_deleted = self._bytes_deleted + utils.remove_old_pictures(self._destPath, src_size)
                     self._delete_old_pics = False
 
                 self._create_folder_if_needed(dest_folder)
@@ -292,7 +292,6 @@ class PictureArchiver:
                     if not self._diagnostics:
                         shutil.move(src_file, dest_folder)
                         self._change_owner(dest_file)
-                        self._bytes_copied = self._bytes_copied + src_size
 
                     self._files_left -= 1
                     if self._files_left == 0:
@@ -308,16 +307,13 @@ class PictureArchiver:
                     if not self._diagnostics:
                         shutil.copy(src_file, dest_folder)
                         self._change_owner(dest_file)
-                        self._bytes_copied = self._bytes_copied + src_size
 
                 success = self._diagnostics or ((not move or not os.path.isfile(src_file)) and os.path.isfile(dest_file) and src_size == os.path.getsize(dest_file))
                 if success:
                     self._move_to_move_destination(src_file, dest_folder_name)
                     if not self._diagnostics:
                         self._correct_picture_date(dest_file, picture_date)
-                        self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date)                    
-
-                    self._success_count += 1
+                        self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date)
 
                 return
             except IOError as ioerror:                
@@ -344,6 +340,7 @@ class PictureArchiver:
         self._currImgIndex = 0
         self._success_count = 0
         self._bytes_copied = 0
+        self._bytes_deleted = 0
         self._start_time = time.time()
         self._database_connections = None
         self._last_year = None
@@ -386,6 +383,7 @@ class PictureArchiver:
                 self.log_file.write("COPIED_NUMBER=" + str(self._success_count) + "\n")
                 self.log_file.write("TOTAL_NUMBER=" + str(self._currImgIndex) + "\n")
                 self.log_file.write("DATA_AMOUNT='" + utils.sizeof_fmt(self._bytes_copied) + "'\n")
+                self.log_file.write("DELETED_AMOUNT='" + utils.sizeof_fmt(self._bytes_deleted) + "'\n")
                 self.log_file.write("DESTINATION_PATH='" + self._destPath + "'\n")
                 self.log_file.write("FREE_SPACE_IN_DESTINATION_PATH='" + utils.sizeof_fmt(utils.get_free_space(self._destPath)) + "'\n")
                 self.log_file.write("DURATION_TIME='" + totalTime + "'\n")
@@ -416,6 +414,8 @@ class PictureArchiver:
             print(f'{self._success_count} ({utils.sizeof_fmt(self._bytes_copied)}) of {self._currImgIndex} updated checksums in {totalTime} ({int(self._success_count/totalSeconds)} files/s, {utils.sizeof_fmt(self._bytes_copied/totalSeconds)}/s)')
         else:
             self._log(str(self._success_count) + " of " + str(self._currImgIndex) + " files copied." + f'({int(self._success_count/totalSeconds)} files/s)')
+            if self._bytes_deleted:
+                self._log(f'{utils.sizeof_fmt(self._bytes_deleted)} of old pictures deleted.')
             self._log(utils.sizeof_fmt(self._bytes_copied) + " copied in " + totalTime + f' ({utils.sizeof_fmt(self._bytes_copied/totalSeconds)}/s)')
 		
 
@@ -432,6 +432,7 @@ class PictureArchiver:
         obj._update_checksum_db_only = options.update_checksums
         obj._validate_checksum_db_only = options.validate_checksums
         obj._excludeOlderThan = datetime.datetime.strptime(options.excludeOlderThan, '%Y-%m-%d %H:%M') if options.excludeOlderThan is not None else None
+        utils.log_debug_enabled = options.debug_logs
 
         obj.post_proc_cmd = options.post_proc_cmd
         obj.post_proc_args = options.post_proc_args

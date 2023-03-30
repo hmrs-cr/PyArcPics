@@ -33,6 +33,11 @@ PA_NEW_GROUP="PA_NEW_GROUP"
 PA_NEW_MODE="PA_NEW_MODE"
 
 error_printed = False
+log_debug_enabled = False
+
+def debug(text):
+    if log_debug_enabled:
+        print(text)
 
 def error(e, errorLabel=True):  
     if errorLabel:  
@@ -286,7 +291,8 @@ def read_backup_folder_options(options_file_name=""):
         "excludeOlderThan": None,
         "update_checksums": None,
         "validate_checksums": None,
-        "no_checksums": None
+        "no_checksums": None,
+        "debug_logs": False
     }
     
     optionsObj = FolderOptions(**options)
@@ -432,7 +438,7 @@ def rmfile(filename):
             
         return False
     except:
-        error("Error removing: " + filename)
+        error("Failed to remove " + filename)
         return False
         
         
@@ -443,8 +449,8 @@ def remove_old_pictures(folder, size_to_claim):
     yearfolders = [os.path.join(folder, d) for d in yearfolders]
     yearfolders = [d for d in yearfolders if os.path.isdir(d)]
 
-    total_deleted_size = 0;
-    deleted_count = 0;
+    total_deleted_size = 0
+    deleted_count = 0
     for year in yearfolders:
         #print year
         monthfolders = [d for d in os.listdir(year) if 1 <= str_to_int(d, 0) <= 12]
@@ -467,19 +473,19 @@ def remove_old_pictures(folder, size_to_claim):
                 for file in files:                    
                     size = os.path.getsize(file)
 
-                    print('Deleting', file)
                     if rmfile(file):
                         total_deleted_size = total_deleted_size + size                    
                         deleted_count = deleted_count + 1
-                        if total_deleted_size > size_to_claim:
-                            print("Deleted count:", deleted_count)
-                            print("Deleted size:", sizeof_fmt(total_deleted_size))                            
-                            return deleted_count
+                        print('DELETED:', file, f'({sizeof_fmt(size)})')
+                        if total_deleted_size > size_to_claim:                            
+                            return total_deleted_size
                 rmdir(day)
             
             rmdir(month)
 
         rmdir(year)
+
+    return total_deleted_size
 
 def get_checksum_db_folder(src_path):
     if os.path.isfile(src_path):

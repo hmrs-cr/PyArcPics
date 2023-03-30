@@ -26,6 +26,7 @@ if __name__ == "__main__":
     parser.add_argument('-m', dest='move', action="store_true", help="Move files instead of copy them.")
     parser.add_argument('-d', dest='diagnostics', action="store_true", help="Don't run the actual actions.")
     parser.add_argument('-s', dest='scan_only', action="store_true", help="Scan folder but don't perform backup")
+    parser.add_argument('--debug', dest='debug_logs', action="store_true", help="enable debug logs.")
     parser.add_argument('--no-checksums', dest='no_checksums', action="store_true", help="Do not calculate/store checksum data.")
     parser.add_argument('--rotate', dest='rotate', action="store_true", help="If destination folder is full, will delete older files to make room for new ones.")
     parser.add_argument('--update-checksums', dest='update_checksums', action="store_true", help="Updates the checksum database in the source folder.")
@@ -33,6 +34,7 @@ if __name__ == "__main__":
 
 
     options = parser.parse_args()
+    utils.log_debug_enabled = options.debug_logs
 
     import json
     config = None
@@ -67,13 +69,11 @@ if __name__ == "__main__":
         if src_folders is None or src_folders == "ALL":
             src_folders = utils.find_camera_folders() + utils.find_camera_folders("SD Card Imports")
 
-        if options.destination is not None and options.destination != "AUTO":        
-            configfilename = os.path.join(options.destination, utils.primary_backup_marker)
+        if options.destination is not None and options.destination != "AUTO":
+            dest_folder_options.dest_path = options.destination
+            configfilename = os.path.join(options.destination, utils.primary_backup_marker)            
             if os.path.isfile(configfilename):
-                dest_folder_options = utils.read_backup_folder_options(configfilename)
-            else:
-                dest_folder_options = utils.find_backup_folder_options()
-                dest_folder_options.dest_path = options.destination
+                dest_folder_options = utils.read_backup_folder_options(configfilename)                
         else:
             dest_folder_options = utils.find_backup_folder_options(utils.primary_backup_marker)
             if dest_folder_options is None or not dest_folder_options.dest_path:
@@ -109,9 +109,6 @@ if __name__ == "__main__":
             os.environ[utils.PA_NEW_GROUP] = ""
             utils.error(e)
     
-    #print dest_folder_options
-    print("Backup location:", dest_folder_options.dest_path, newusergroup)
-    
     for path in src_folders:
         import glob
         try:
@@ -120,8 +117,9 @@ if __name__ == "__main__":
             continue
         for exp_path in expanded_paths:
             if os.path.isdir(exp_path) or os.path.isfile(exp_path):
-                if not os.path.isfile(os.path.join(exp_path, ".no_backup")):
-                    print("SOURCE FOLDER:", exp_path)
+                if not os.path.isfile(os.path.join(exp_path, ".no_backup")):                    
+                    print(F"DIRECTION '{exp_path}' -> '{dest_folder_options.dest_path}'", )
+                    utils.debug('WITH OPTIONS: ' + str(dest_folder_options))
                     if not options.scan_only:                
                         PictureArchiver.do(exp_path, dest_folder_options)
                 else:
