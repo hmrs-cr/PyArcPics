@@ -118,7 +118,7 @@ if __name__ == "__main__":
         for exp_path in expanded_paths:
             if os.path.isdir(exp_path) or os.path.isfile(exp_path):
                 if not os.path.isfile(os.path.join(exp_path, ".no_backup")):                    
-                    print(F"DIRECTION '{exp_path}' -> '{dest_folder_options.dest_path}'", )
+                    print(F"DIRECTION '{exp_path}' -> '{dest_folder_options.dest_path}'")
                     utils.debug('WITH OPTIONS: ' + str(dest_folder_options))
                     if not options.scan_only:                
                         PictureArchiver.do(exp_path, dest_folder_options)

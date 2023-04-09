@@ -112,12 +112,12 @@ def sizeof_fmt(num, suffix='B'):
 
 def has_exif(file_name):
     fname, fext = os.path.splitext(file_name)
-    return fext.lower() in [".jpg", ".jpeg", ".png", ".dng", ".orf", ".cr2", ".arw"]
+    return fext.lower() in [".jpg", ".jpeg", ".png", ".dng", ".orf", ".cr2", ".arw", ".tif"]
 
 
 def is_picture(file_name):
     fname, fext = os.path.splitext(file_name)
-    return fext.lower() in [".jpg", ".jpeg", ".png"]
+    return fext.lower() in [".jpg", ".jpeg", ".png", ".tif"]
 
 
 def get_exif_value_date(exif_data, key):
@@ -295,7 +295,7 @@ def read_backup_folder_options(options_file_name=""):
         "debug_logs": False
     }
     
-    optionsObj = FolderOptions(**options)
+    optionsObj = None
     if options_file_name is not None:
         if options_file_name:
             try:        
@@ -305,16 +305,17 @@ def read_backup_folder_options(options_file_name=""):
                     for key, value in config.items():
                         options[key] = value
 
-                    optionsObj = FolderOptions(**options)        
-
+                    optionsObj = FolderOptions(**options)
+                    optionsObj.dest_path = os.path.join(os.path.dirname(options_file_name), optionsObj.dest_path)
                     if optionsObj.subfolder is not None:
                         optionsObj.dest_path = os.path.join(optionsObj.dest_path , optionsObj.subfolder)
 
                     optionsObj.initialized = True
-            except:     
+                    return optionsObj
+            except Exception as e:
                 pass
-        
-    return optionsObj
+
+    return FolderOptions(**options)
 
 
 def get_backup_folders(config_file_name=primary_backup_marker):
@@ -322,7 +323,7 @@ def get_backup_folders(config_file_name=primary_backup_marker):
     def sortPriority(val):
         return val.priority
 
-    drives = get_drive_list()        
+    drives = get_drive_list()       
     folders = []
     for drive in drives:
         if drive == "/":
@@ -333,7 +334,6 @@ def get_backup_folders(config_file_name=primary_backup_marker):
             folders.append(read_backup_folder_options(config_file_path))
 
     folders.sort(key = sortPriority)
-    
     return folders
         
 
