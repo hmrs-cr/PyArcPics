@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('--rotate', dest='rotate', action="store_true", help="If destination folder is full, will delete older files to make room for new ones.")
     parser.add_argument('--update-checksums', dest='update_checksums', action="store_true", help="Updates the checksum database in the source folder.")
     parser.add_argument('--validate-checksums', dest='validate_checksums', action="store_true", help="Validates the checksum database in the source folder against the actual files checksums.")
+    parser.add_argument('--ignore-duplicates', dest='ignore_duplicates', action="store_true", help="Validates the checksum and ignores a file if its checksum already exists.")
 
 
     options = parser.parse_args()
@@ -88,7 +89,7 @@ if __name__ == "__main__":
             exit() 
 
     dest_folder_options.overwrite(options)
-
+    
     if not isinstance(src_folders, list):
         sys.stderr.write("Source folders in config is not a valid list: " + src_folders + "\n")
         exit(1)

@@ -21,6 +21,7 @@ commit_transaction_sql = "COMMIT;"
 
 insert_sql = "INSERT OR REPLACE INTO pictures (name, checksum, size, timestamp, addeondtimestamp) VALUES (?, ?, ?, ?, ?);"
 select_sql = "SELECT checksum, size, timestamp FROM pictures WHERE name = ?"
+find_duplicate_sql = "SELECT name FROM pictures WHERE checksum = ? AND size = ?"
 
 def _adapt_datetime_epoch(val):
     """Adapt datetime.datetime to Unix timestamp."""
@@ -54,6 +55,11 @@ def _is_picture_valid(cur, name, checksum, size, timestamp):
     else:
         print(f'VALID: {name}')
         return True
+    
+def _already_exists(cur, checksum, size):
+    res = cur.execute(find_duplicate_sql, (checksum,size))
+    result = res.fetchone()
+    return result[0] if result is not None else ""
 
 class CkSumConnection:
     def __init__(self, name) -> None:
@@ -78,6 +84,9 @@ class CkSumConnection:
 
     def is_picture_valid(self, name, checksum, size, timestamp):
         return _is_picture_valid(self.con.cursor(), name, checksum, size, timestamp)
+    
+    def picture_already_exists(self, checksum, size):
+        return _already_exists(self.con.cursor(), checksum, size)
 
 def start_db_transaction(databasename):
     return CkSumConnection(databasename)

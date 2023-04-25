@@ -290,6 +290,7 @@ def read_backup_folder_options(options_file_name=""):
         "excludeExt": [],
         "excludeOlderThan": None,
         "update_checksums": None,
+        "ignore_duplicates": None,
         "validate_checksums": None,
         "no_checksums": None,
         "debug_logs": False

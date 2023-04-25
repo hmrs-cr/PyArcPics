@@ -129,20 +129,27 @@ class PictureArchiver:
 
         #self._debug("Corrected: " + picture_path)
 
-    def _validate_against_database(self, dest_relative_filename, src_checksum, src_size, picture_date, validate_only=False):
-        return self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date, True)
-    
-    def _save_to_database(self, dest_relative_filename, src_checksum, src_size, picture_date, validate_only=False):
-        if self._no_checksums or src_checksum is None:
-            return
-
+    def _get_db_connection(self, picture_date):
         if self._database_connections is None:
             self._database_connections = {}
         
         databasename = os.path.join(self._destPath, str(picture_date.year), f'checksums-{picture_date.year}.db')
         con = self._database_connections.get(picture_date.year) or dbutils.start_db_transaction(databasename)
         self._database_connections[picture_date.year] = con
+        return con
 
+    def _picture_already_exists(self, src_checksum, src_size, picture_date):
+        con = self._get_db_connection(picture_date)
+        return con.picture_already_exists(src_checksum, src_size)
+
+    def _validate_against_database(self, dest_relative_filename, src_checksum, src_size, picture_date, validate_only=False):
+        return self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date, True)
+    
+    def _save_to_database(self, dest_relative_filename, src_checksum, src_size, picture_date, validate_only=False):
+        if self._no_checksums or src_checksum is None:
+            return
+ 
+        con = self._get_db_connection(picture_date)
         if validate_only:
             self._invalid_count = self._invalid_count + (1 if not con.is_picture_valid(dest_relative_filename, src_checksum, src_size, picture_date) else 0)
         else:
@@ -278,6 +285,12 @@ class PictureArchiver:
                     self._save_to_database(dest_relative_filename, src_checksum, src_size, picture_date)
                     self._log(f'UPDATED CKSUM: {dest_relative_filename}, {src_checksum}, {src_size}, {picture_date}')
                     return
+                
+                if self._ignore_duplicates:
+                    existingname = self._picture_already_exists(src_checksum, src_size, picture_date)
+                    if existingname:
+                        self._log(f"SKIPING: '{src_file}', already exists as: '{existingname}'")
+                        return
       
                 self._delete_old_pics = True
                 if self._rotate and (self._delete_old_pics or utils.get_free_space(self._destPath) < src_size):                
@@ -430,6 +443,7 @@ class PictureArchiver:
         obj._excludeExt = options.excludeExt
         obj._no_checksums = options.no_checksums
         obj._update_checksum_db_only = options.update_checksums
+        obj._ignore_duplicates = options.ignore_duplicates
         obj._validate_checksum_db_only = options.validate_checksums
         obj._excludeOlderThan = datetime.datetime.strptime(options.excludeOlderThan, '%Y-%m-%d %H:%M') if options.excludeOlderThan is not None else None
         utils.log_debug_enabled = options.debug_logs
